@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "github-deploy": "ng deploy --base-href=/simple-image-editor/"
   },
   "private": true,
   "dependencies": {
