@@ -1,0 +1,14 @@
+@import "primeicons/primeicons.css";
+@import "tailwindcss";
+@plugin "tailwindcss-primeui";
+
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  margin: 0;
+  font-family: sans-serif;
+}
+
+body {
+  height: 100%;
+}

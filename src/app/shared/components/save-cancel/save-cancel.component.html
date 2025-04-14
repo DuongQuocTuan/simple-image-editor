@@ -1,0 +1,18 @@
+<p-button
+  class="center-cancel-button mr-4"
+  icon="pi pi-times"
+  variant="outlined"
+  severity="danger"
+  [label]="cancelButtonLabel"
+  (click)="onCancel()"
+/>
+<p-button
+  icon="pi pi-check"
+  severity="success"
+  [disabled]="isDisabled"
+  [type]="saveButtonType"
+  [label]="saveButtonLabel"
+  [raised]="true"
+  [loading]="isSubmitting"
+  (click)="onSave()"
+/>
