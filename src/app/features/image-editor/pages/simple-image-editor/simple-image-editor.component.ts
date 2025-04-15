@@ -12,6 +12,11 @@ import { BUTTON_TYPE } from '@features/image-editor/constants/button-type.consta
 import { FONT_SETTING } from '@features/image-editor/constants/font-setting.constant';
 import { TEXT_COLOR } from '@features/image-editor/constants/text-color.constant';
 import { TEXT_SYMBOL } from '@features/image-editor/constants/text-symbol.constant';
+import {
+  Position,
+  SelectedText,
+} from '@features/image-editor/models/editor-state.model';
+import { ElementType } from '@features/image-editor/models/element.model';
 import { SaveCancelComponent } from '@shared/components/save-cancel/save-cancel.component';
 import { AutoFocusModule } from 'primeng/autofocus';
 import { ButtonModule } from 'primeng/button';
@@ -21,27 +26,6 @@ import { FileUploadHandlerEvent, FileUploadModule } from 'primeng/fileupload';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { TooltipModule } from 'primeng/tooltip';
-
-// Define element types
-type TextElement = {
-  type: 'text';
-  text: string;
-  color: string;
-  x: number;
-  y: number;
-  size: number;
-};
-
-type SquareElement = {
-  type: 'square';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  color: string;
-};
-
-type ElementType = TextElement | SquareElement;
 
 @Component({
   selector: 'app-simple-image-editor',
@@ -69,9 +53,8 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   private context: CanvasRenderingContext2D | null = null;
   private image: HTMLImageElement | null = null;
   originalFilename = '';
-  private selectedText: { symbol: string; color: string; size: number } | null =
-    null;
-  private clickPosition: { x: number; y: number } | null = null;
+  private selectedText: SelectedText | null = null;
+  private clickPosition: Position | null = null;
   // Unified elements array
   private elements: ElementType[] = [];
   // Updated history type
