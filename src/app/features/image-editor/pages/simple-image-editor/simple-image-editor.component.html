@@ -34,6 +34,8 @@
         class="color-picker mr-8"
         [(ngModel)]="selectedColor"
         (onChange)="updateColor(selectedColor)"
+        (onShow)="onColorPickerOpen()"
+        (onHide)="onColorPickerClose()"
       />
       <p-button
         class="mr-2"
@@ -56,7 +58,7 @@
         (click)="selectText(textSymbolConst.X, textColorConst.X)"
       />
       <p-button
-        class="mr-8"
+        class="mr-2"
         icon="pi pi-pencil"
         [severity]="
           activeButton === buttonTypeConst.FREE_TEXT ? 'info' : 'secondary'
@@ -68,16 +70,28 @@
         (click)="enableCustomTextMode()"
       />
       <p-button
+        class="mr-8"
+        icon="pi pi-stop"
+        [severity]="
+          activeButton === buttonTypeConst.SQUARE ? 'warn' : 'secondary'
+        "
+        [raised]="activeButton === buttonTypeConst.SQUARE"
+        [plain]="
+          activeButton !== null && activeButton !== buttonTypeConst.SQUARE
+        "
+        (click)="enableSquareMode(textColorConst.SQUARE)"
+      />
+      <p-button
         class="mr-2"
         icon="pi pi-chevron-left"
         [outlined]="true"
-        (click)="undo()"
+        (click)="undo(); $event.stopPropagation()"
       />
       <p-button
         class="mr-8"
         icon="pi pi-chevron-right"
         [outlined]="true"
-        (click)="redo()"
+        (click)="redo(); $event.stopPropagation()"
       />
       <p-button
         icon="pi pi-trash"
