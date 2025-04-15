@@ -83,13 +83,13 @@
         class="mr-2"
         icon="pi pi-chevron-left"
         [outlined]="true"
-        (click)="undo()"
+        (click)="undo(); $event.stopPropagation()"
       />
       <p-button
         class="mr-8"
         icon="pi pi-chevron-right"
         [outlined]="true"
-        (click)="redo()"
+        (click)="redo(); $event.stopPropagation()"
       />
       <p-button
         icon="pi pi-trash"
