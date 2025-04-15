@@ -50,25 +50,25 @@ import { TooltipModule } from 'primeng/tooltip';
 })
 export class SimpleImageEditorComponent implements AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  private readonly deletionThreshold = 100; // Pixels
   private context: CanvasRenderingContext2D | null = null;
   private image: HTMLImageElement | null = null;
-  originalFilename = '';
   private selectedText: SelectedText | null = null;
   private clickPosition: Position | null = null;
-  // Unified elements array
   private elements: ElementType[] = [];
-  // Updated history type
-  private history: ElementType[][] = [[]]; // Initialize with empty state
+  private history: ElementType[][] = [[]];
   private historyIndex: number = 0;
-  private readonly deletionThreshold = 100; // Pixels
-
   readonly textColorConst = TEXT_COLOR;
   readonly textSymbolConst = TEXT_SYMBOL;
   readonly fontSettingConst = FONT_SETTING;
   readonly buttonTypeConst = { ...BUTTON_TYPE, SQUARE: 'SQUARE' };
-  selectedColor: string = TEXT_COLOR.DEFAULT;
   private isSquareMode = false;
   private squareStartPosition: { x: number; y: number } | null = null;
+  private isColorPickerOpen = false;
+  private wasSquareModeBeforeColorPicker = false;
+
+  originalFilename = '';
+  selectedColor: string = TEXT_COLOR.DEFAULT;
   fontSize = FONT_SETTING.FONT_SIZE;
   showTextDialog = false;
   customTextInput = '';
@@ -197,7 +197,24 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     if (this.selectedText) {
       this.selectedText.color = color;
     }
-    // Color change doesn't need history update if no element is actively being placed
+  }
+
+  onColorPickerOpen(): void {
+    this.isColorPickerOpen = true;
+    this.wasSquareModeBeforeColorPicker = this.isSquareMode;
+    if (this.isSquareMode) {
+      this.isSquareMode = false;
+      this.squareStartPosition = null;
+    }
+  }
+
+  onColorPickerClose(): void {
+    this.isColorPickerOpen = false;
+
+    // Restore square mode if it was active before color picker
+    if (this.wasSquareModeBeforeColorPicker) {
+      this.enableSquareMode(this.selectedColor);
+    }
   }
 
   enableCustomTextMode(): void {
@@ -349,8 +366,8 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.isSquareMode = false;
   }
 
-  enableSquareMode(): void {
-    this.selectedColor = TEXT_COLOR.SQUARE;
+  enableSquareMode(color: string): void {
+    this.selectedColor = color;
     this.isSquareMode = true;
     this.isDeleteMode = false;
     this.selectedText = null;
@@ -428,6 +445,13 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   @HostListener('mousedown', ['$event'])
   onMouseDown(event: MouseEvent): void {
+    console.log(
+      '🚀 ~ SimpleImageEditorComponent ~ mousedown ~ this.isColorPickerOpen:',
+      this.isColorPickerOpen
+    );
+
+    if (this.isColorPickerOpen) return;
+
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
     const isInCanvas =
@@ -436,7 +460,12 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       event.clientY >= rect.top &&
       event.clientY <= rect.bottom;
 
-    if (this.isSquareMode && this.context && isInCanvas) {
+    if (
+      this.isSquareMode &&
+      this.context &&
+      isInCanvas &&
+      !this.isColorPickerOpen
+    ) {
       this.squareStartPosition = {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
@@ -446,6 +475,13 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   @HostListener('mousemove', ['$event'])
   onMouseMove(event: MouseEvent): void {
+    console.log(
+      '🚀 ~ SimpleImageEditorComponent ~ onMouseMove ~ this.isColorPickerOpen:',
+      this.isColorPickerOpen
+    );
+
+    if (this.isColorPickerOpen) return;
+
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
     const isInCanvas =
@@ -459,7 +495,8 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.squareStartPosition &&
       this.context &&
       this.image &&
-      isInCanvas
+      isInCanvas &&
+      !this.isColorPickerOpen
     ) {
       const currentX = event.clientX - rect.left;
       const currentY = event.clientY - rect.top;
@@ -478,6 +515,12 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   @HostListener('mouseup', ['$event'])
   onMouseUp(event: MouseEvent): void {
+    console.log(
+      '🚀 ~ SimpleImageEditorComponent ~ onMouseUp ~ this.isColorPickerOpen:',
+      this.isColorPickerOpen
+    );
+    if (this.isColorPickerOpen) return;
+
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
     const isInCanvas =
