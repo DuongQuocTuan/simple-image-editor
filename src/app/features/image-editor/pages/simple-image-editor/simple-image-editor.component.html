@@ -56,7 +56,7 @@
         (click)="selectText(textSymbolConst.X, textColorConst.X)"
       />
       <p-button
-        class="mr-8"
+        class="mr-2"
         icon="pi pi-pencil"
         [severity]="
           activeButton === buttonTypeConst.FREE_TEXT ? 'info' : 'secondary'
@@ -66,6 +66,18 @@
           activeButton !== null && activeButton !== buttonTypeConst.FREE_TEXT
         "
         (click)="enableCustomTextMode()"
+      />
+      <p-button
+        class="mr-8"
+        icon="pi pi-stop"
+        [severity]="
+          activeButton === buttonTypeConst.SQUARE ? 'warn' : 'secondary'
+        "
+        [raised]="activeButton === buttonTypeConst.SQUARE"
+        [plain]="
+          activeButton !== null && activeButton !== buttonTypeConst.SQUARE
+        "
+        (click)="enableSquareMode()"
       />
       <p-button
         class="mr-2"

@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, ViewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  ViewChild,
+} from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BUTTON_TYPE } from '@features/image-editor/constants/button-type.constant';
 import { FONT_SETTING } from '@features/image-editor/constants/font-setting.constant';
@@ -30,29 +37,61 @@ import { TooltipModule } from 'primeng/tooltip';
     InputTextModule,
     SaveCancelComponent,
     AutoFocusModule,
-    TooltipModule
+    TooltipModule,
   ],
   templateUrl: './simple-image-editor.component.html',
   styleUrls: ['./simple-image-editor.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimpleImageEditorComponent implements AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   private context: CanvasRenderingContext2D | null = null;
   private image: HTMLImageElement | null = null;
   originalFilename = '';
-  private selectedText: { symbol: string; color: string; size: number } | null = null;
+  private selectedText: { symbol: string; color: string; size: number } | null =
+    null;
   private clickPosition: { x: number; y: number } | null = null;
-  private texts: { text: string; color: string; x: number; y: number; size: number }[] = [];
-  private history: { texts: { text: string; color: string; x: number; y: number; size: number }[] }[] = [];
+  private texts: {
+    text: string;
+    color: string;
+    x: number;
+    y: number;
+    size: number;
+  }[] = [];
+  private history: {
+    texts: {
+      text: string;
+      color: string;
+      x: number;
+      y: number;
+      size: number;
+    }[];
+    squares: {
+      // Add squares to history type
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      color: string;
+    }[];
+  }[] = [];
   private historyIndex: number = 0;
   private readonly deletionThreshold = 100; // Pixels
 
   readonly textColorConst = TEXT_COLOR;
   readonly textSymbolConst = TEXT_SYMBOL;
   readonly fontSettingConst = FONT_SETTING;
-  readonly buttonTypeConst = BUTTON_TYPE;
+  readonly buttonTypeConst = { ...BUTTON_TYPE, SQUARE: 'SQUARE' };
   selectedColor: string = TEXT_COLOR.DEFAULT;
+  private isSquareMode = false;
+  private squareStartPosition: { x: number; y: number } | null = null;
+  private squares: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    color: string;
+  }[] = [];
   fontSize = FONT_SETTING.FONT_SIZE;
   showTextDialog = false;
   customTextInput = '';
@@ -80,7 +119,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.texts = [];
     this.history = [];
     this.historyIndex = 0;
-    reader.onload = e => {
+    reader.onload = (e) => {
       this.image = new Image();
       this.image.onload = () => this.drawImage();
       this.image.src = e.target?.result as string;
@@ -93,7 +132,9 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.selectedText = { symbol, color, size: this.fontSize };
     this.isCustomTextMode = false;
     this.isDeleteMode = false;
-    this.activeButton = symbol === this.textSymbolConst.CHECK ? BUTTON_TYPE.CHECK : BUTTON_TYPE.X;
+    this.isSquareMode = false; // Ensure square mode is off
+    this.activeButton =
+      symbol === this.textSymbolConst.CHECK ? BUTTON_TYPE.CHECK : BUTTON_TYPE.X;
   }
 
   exportImage(): void {
@@ -115,13 +156,17 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       const rect = canvas.getBoundingClientRect();
       this.clickPosition = {
         x: event.clientX - rect.left,
-        y: event.clientY - rect.top
+        y: event.clientY - rect.top,
       };
       this.showTextDialog = true;
     } else if (this.isDeleteMode) {
       const clickedItem = this.findNearestTextItem(event);
       if (clickedItem) {
-        this.texts = this.texts.filter(t => t !== clickedItem);
+        if ('text' in clickedItem) {
+          this.texts = this.texts.filter((t) => t !== clickedItem);
+        } else {
+          this.squares = this.squares.filter((s) => s !== clickedItem);
+        }
         this.saveToHistory();
         this.redrawCanvas();
       }
@@ -142,7 +187,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         color: this.selectedText.color,
         x,
         y,
-        size: this.selectedText.size
+        size: this.selectedText.size,
       });
       this.saveToHistory();
       this.redrawCanvas();
@@ -153,6 +198,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     if (this.historyIndex > 0) {
       this.historyIndex--;
       this.texts = [...this.history[this.historyIndex].texts];
+      this.squares = [...this.history[this.historyIndex].squares]; // Restore squares
       this.redrawCanvas();
     }
   }
@@ -161,6 +207,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     if (this.historyIndex < this.history.length - 1) {
       this.historyIndex++;
       this.texts = [...this.history[this.historyIndex].texts];
+      this.squares = [...this.history[this.historyIndex].squares]; // Restore squares
       this.redrawCanvas();
     }
   }
@@ -175,9 +222,10 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   enableCustomTextMode(): void {
     this.isCustomTextMode = true;
     this.isDeleteMode = false;
+    this.isSquareMode = false; // Ensure square mode is off
     this.selectedText = null;
     this.activeButton = BUTTON_TYPE.FREE_TEXT;
-    this.selectedColor = TEXT_COLOR.X;
+    this.selectedColor = TEXT_COLOR.FREE_TEXT;
   }
 
   confirmTextInput(): void {
@@ -188,7 +236,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       color: this.selectedColor,
       x: this.clickPosition.x,
       y: this.clickPosition.y,
-      size: this.fontSize
+      size: this.fontSize,
     });
 
     this.saveToHistory();
@@ -215,23 +263,40 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     const canvas = this.canvasRef.nativeElement;
     canvas.width = this.image.width;
     canvas.height = this.image.height;
-    this.context.drawImage(this.image, 0, 0, this.image.width, this.image.height);
+    this.context.drawImage(
+      this.image,
+      0,
+      0,
+      this.image.width,
+      this.image.height
+    );
     this.redrawCanvas();
   }
 
   private saveToHistory(): void {
+    // Initialize history if it's the first action
     if (this.history.length === 0) {
-      this.history.push({ texts: [] });
+      this.history.push({ texts: [], squares: [] }); // Initialize with empty texts and squares
+      this.historyIndex = 0; // Start index at 0 for the initial state
     }
 
+    // If undo was performed, truncate future history
     if (this.historyIndex < this.history.length - 1) {
       this.history = this.history.slice(0, this.historyIndex + 1);
     }
 
-    this.history.push({
-      texts: this.texts.map(t => ({ ...t }))
-    });
-    this.historyIndex = this.history.length - 1;
+    // Push the new state
+    const newState = {
+      texts: this.texts.map((t) => ({ ...t })),
+      squares: this.squares.map((s) => ({ ...s })), // Save squares state
+    };
+
+    // Avoid pushing identical consecutive states
+    const lastState = this.history[this.historyIndex];
+    if (JSON.stringify(newState) !== JSON.stringify(lastState)) {
+      this.history.push(newState);
+      this.historyIndex = this.history.length - 1;
+    }
   }
 
   private redrawCanvas(): void {
@@ -241,7 +306,16 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.context.clearRect(0, 0, canvas.width, canvas.height);
     this.context.drawImage(this.image, 0, 0, canvas.width, canvas.height);
 
-    this.texts.forEach(textObj => {
+    // Draw squares
+    this.squares.forEach((square) => {
+      if (!this.context) return;
+      this.context.strokeStyle = square.color;
+      this.context.lineWidth = 2;
+      this.context.strokeRect(square.x, square.y, square.width, square.height);
+    });
+
+    // Draw texts
+    this.texts.forEach((textObj) => {
       if (!this.context) return;
       this.context.font = `${textObj.size}${FONT_SETTING.FONT_UNIT} ${FONT_SETTING.FONT_FAMILY}`;
       this.context.fillStyle = textObj.color;
@@ -260,9 +334,24 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.activeButton = this.isDeleteMode ? this.buttonTypeConst.DELETE : null;
     this.selectedText = null;
     this.isCustomTextMode = false;
+    this.isSquareMode = false;
   }
 
-  private findNearestTextItem(event: MouseEvent): { text: string; x: number; y: number } | null {
+  enableSquareMode(): void {
+    this.selectedColor = TEXT_COLOR.SQUARE;
+    this.isSquareMode = true;
+    this.isDeleteMode = false;
+    this.selectedText = null;
+    this.isCustomTextMode = false;
+    this.activeButton = this.buttonTypeConst.SQUARE;
+  }
+
+  private findNearestTextItem(
+    event: MouseEvent
+  ):
+    | { text: string; x: number; y: number }
+    | { x: number; y: number; width: number; height: number }
+    | null {
     if (!this.context || !this.image) return null;
 
     const canvas = this.canvasRef.nativeElement;
@@ -270,15 +359,43 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
 
-    let closestItem: { text: string; x: number; y: number } | null = null;
+    let closestItem:
+      | { text: string; x: number; y: number }
+      | { x: number; y: number; width: number; height: number }
+      | null = null;
     let minDistance = Infinity;
 
-    this.texts.forEach(textObj => {
-      const distance = Math.sqrt(Math.pow(clickX - textObj.x, 2) + Math.pow(clickY - textObj.y, 2));
+    // Check text items
+    this.texts.forEach((textObj) => {
+      const distance = Math.sqrt(
+        Math.pow(clickX - textObj.x, 2) + Math.pow(clickY - textObj.y, 2)
+      );
 
       if (distance < this.deletionThreshold && distance < minDistance) {
         minDistance = distance;
         closestItem = textObj;
+      }
+    });
+
+    // Check square items
+    this.squares.forEach((square) => {
+      const isInside =
+        clickX >= square.x &&
+        clickX <= square.x + square.width &&
+        clickY >= square.y &&
+        clickY <= square.y + square.height;
+
+      if (isInside) {
+        const centerX = square.x + square.width / 2;
+        const centerY = square.y + square.height / 2;
+        const distance = Math.sqrt(
+          Math.pow(clickX - centerX, 2) + Math.pow(clickY - centerY, 2)
+        );
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestItem = square;
+        }
       }
     });
 
@@ -295,5 +412,88 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   onRedoKey(event: KeyboardEvent): void {
     event.preventDefault();
     this.redo();
+  }
+
+  @HostListener('mousedown', ['$event'])
+  onMouseDown(event: MouseEvent): void {
+    if (this.isSquareMode && this.context) {
+      const canvas = this.canvasRef.nativeElement;
+      const rect = canvas.getBoundingClientRect();
+      this.squareStartPosition = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+    }
+  }
+
+  @HostListener('mousemove', ['$event'])
+  onMouseMove(event: MouseEvent): void {
+    if (
+      this.isSquareMode &&
+      this.squareStartPosition &&
+      this.context &&
+      this.image
+    ) {
+      const canvas = this.canvasRef.nativeElement;
+      const rect = canvas.getBoundingClientRect();
+      const currentX = event.clientX - rect.left;
+      const currentY = event.clientY - rect.top;
+
+      // Temporary drawing of square while dragging
+      this.context.clearRect(0, 0, canvas.width, canvas.height);
+      this.context.drawImage(this.image, 0, 0, canvas.width, canvas.height);
+
+      // Redraw existing elements (texts)
+      this.texts.forEach((textObj) => {
+        this.context!.font = `${textObj.size}${FONT_SETTING.FONT_UNIT} ${FONT_SETTING.FONT_FAMILY}`;
+        this.context!.fillStyle = textObj.color;
+        this.context!.fillText(textObj.text, textObj.x, textObj.y);
+      });
+
+      // Redraw existing elements (squares)
+      this.squares.forEach((square) => {
+        if (!this.context) return;
+        this.context.strokeStyle = square.color;
+        this.context.lineWidth = 2;
+        this.context.strokeRect(
+          square.x,
+          square.y,
+          square.width,
+          square.height
+        );
+      });
+
+      // Draw temporary square
+      this.context.strokeStyle = this.selectedColor;
+      this.context.lineWidth = 2;
+      this.context.strokeRect(
+        this.squareStartPosition.x,
+        this.squareStartPosition.y,
+        currentX - this.squareStartPosition.x,
+        currentY - this.squareStartPosition.y
+      );
+    }
+  }
+
+  @HostListener('mouseup', ['$event'])
+  onMouseUp(event: MouseEvent): void {
+    if (this.isSquareMode && this.squareStartPosition) {
+      const canvas = this.canvasRef.nativeElement;
+      const rect = canvas.getBoundingClientRect();
+      const endX = event.clientX - rect.left;
+      const endY = event.clientY - rect.top;
+
+      this.squares.push({
+        x: this.squareStartPosition.x,
+        y: this.squareStartPosition.y,
+        width: endX - this.squareStartPosition.x,
+        height: endY - this.squareStartPosition.y,
+        color: this.selectedColor,
+      });
+
+      this.saveToHistory();
+      this.redrawCanvas();
+      this.squareStartPosition = null;
+    }
   }
 }
