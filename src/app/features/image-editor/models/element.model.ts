@@ -16,4 +16,13 @@ export interface SquareElement {
   color: string;
 }
 
-export type ElementType = TextElement | SquareElement;
+export interface EllipseElement {
+  type: 'ellipse';
+  x: number;
+  y: number;
+  radiusX: number;
+  radiusY: number;
+  color: string;
+}
+
+export type ElementType = TextElement | SquareElement | EllipseElement;

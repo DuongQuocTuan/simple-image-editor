@@ -70,8 +70,10 @@
         (click)="enableCustomTextMode()"
       />
       <p-button
-        class="mr-8"
+        class="mr-2"
         icon="pi pi-stop"
+        pTooltip="Draw Rectangle (Hold Shift for Square)"
+        tooltipPosition="bottom"
         [severity]="
           activeButton === buttonTypeConst.SQUARE ? 'warn' : 'secondary'
         "
@@ -80,6 +82,20 @@
           activeButton !== null && activeButton !== buttonTypeConst.SQUARE
         "
         (click)="enableSquareMode(textColorConst.SQUARE)"
+      />
+      <p-button
+        class="mr-8"
+        icon="pi pi-circle"
+        pTooltip="Draw Ellipse (Hold Shift for Circle)"
+        tooltipPosition="bottom"
+        [severity]="
+          activeButton === buttonTypeConst.ELLIPSE ? 'info' : 'secondary'
+        "
+        [raised]="activeButton === buttonTypeConst.ELLIPSE"
+        [plain]="
+          activeButton !== null && activeButton !== buttonTypeConst.ELLIPSE
+        "
+        (click)="enableEllipseMode(textColorConst.ELLIPSE)"
       />
       <p-button
         class="mr-2"

@@ -61,11 +61,18 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   readonly textColorConst = TEXT_COLOR;
   readonly textSymbolConst = TEXT_SYMBOL;
   readonly fontSettingConst = FONT_SETTING;
-  readonly buttonTypeConst = { ...BUTTON_TYPE, SQUARE: 'SQUARE' };
+  readonly buttonTypeConst = {
+    ...BUTTON_TYPE,
+    SQUARE: 'SQUARE',
+    ELLIPSE: 'ELLIPSE',
+  };
   private isSquareMode = false;
+  private isEllipseMode = false;
   private squareStartPosition: { x: number; y: number } | null = null;
+  private ellipseStartPosition: { x: number; y: number } | null = null;
   private isColorPickerOpen = false;
   private wasSquareModeBeforeColorPicker = false;
+  private wasEllipseModeBeforeColorPicker = false;
 
   originalFilename = '';
   selectedColor: string = TEXT_COLOR.DEFAULT;
@@ -112,7 +119,8 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.selectedText = { symbol, color, size: this.fontSize };
     this.isCustomTextMode = false;
     this.isDeleteMode = false;
-    this.isSquareMode = false; // Ensure square mode is off
+    this.isSquareMode = false;
+    this.isEllipseMode = false; // Ensure ellipse mode is off too
     this.activeButton =
       symbol === this.textSymbolConst.CHECK ? BUTTON_TYPE.CHECK : BUTTON_TYPE.X;
   }
@@ -202,25 +210,37 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   onColorPickerOpen(): void {
     this.isColorPickerOpen = true;
     this.wasSquareModeBeforeColorPicker = this.isSquareMode;
+    this.wasEllipseModeBeforeColorPicker = this.isEllipseMode; // Track ellipse mode too
     if (this.isSquareMode) {
       this.isSquareMode = false;
       this.squareStartPosition = null;
+    }
+    if (this.isEllipseMode) {
+      this.isEllipseMode = false;
+      this.ellipseStartPosition = null;
     }
   }
 
   onColorPickerClose(): void {
     this.isColorPickerOpen = false;
 
-    // Restore square mode if it was active before color picker
+    // Restore the correct mode if it was active before color picker
     if (this.wasSquareModeBeforeColorPicker) {
       this.enableSquareMode(this.selectedColor);
+      this.wasSquareModeBeforeColorPicker = false; // Reset flag
+      this.wasEllipseModeBeforeColorPicker = false; // Reset flag
+    } else if (this.wasEllipseModeBeforeColorPicker) {
+      this.enableEllipseMode(this.selectedColor);
+      this.wasSquareModeBeforeColorPicker = false; // Reset flag
+      this.wasEllipseModeBeforeColorPicker = false; // Reset flag
     }
   }
 
   enableCustomTextMode(): void {
     this.isCustomTextMode = true;
     this.isDeleteMode = false;
-    this.isSquareMode = false; // Ensure square mode is off
+    this.isSquareMode = false;
+    this.isEllipseMode = false; // Ensure ellipse mode is off too
     this.selectedText = null;
     this.activeButton = BUTTON_TYPE.FREE_TEXT;
     this.selectedColor = TEXT_COLOR.FREE_TEXT;
@@ -282,7 +302,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.history = this.history.slice(0, this.historyIndex + 1);
     }
 
-    console.log('saveToHistory - before normalization:', this.elements);
     // Normalize square dimensions to always be positive
     const normalizedElements = this.elements.map((el) => {
       if (el.type === 'square') {
@@ -294,7 +313,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       }
       return { ...el };
     });
-    console.log('saveToHistory - after normalization:', normalizedElements);
 
     // Push the new state (copy of normalized elements array)
     const newState = normalizedElements.map((el) => ({ ...el }));
@@ -350,6 +368,20 @@ export class SimpleImageEditorComponent implements AfterViewInit {
           element.width,
           element.height
         );
+      } else if (element.type === 'ellipse') {
+        this.context.strokeStyle = element.color;
+        this.context.lineWidth = 2;
+        this.context.beginPath();
+        this.context.ellipse(
+          element.x,
+          element.y,
+          element.radiusX,
+          element.radiusY,
+          0,
+          0,
+          2 * Math.PI
+        );
+        this.context.stroke();
       }
     });
   }
@@ -366,15 +398,27 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.selectedText = null;
     this.isCustomTextMode = false;
     this.isSquareMode = false;
+    this.isEllipseMode = false; // Ensure ellipse mode is off too
   }
 
   enableSquareMode(color: string): void {
     this.selectedColor = color;
     this.isSquareMode = true;
+    this.isEllipseMode = false; // Ensure ellipse mode is off
     this.isDeleteMode = false;
     this.selectedText = null;
     this.isCustomTextMode = false;
     this.activeButton = this.buttonTypeConst.SQUARE;
+  }
+
+  enableEllipseMode(color: string): void {
+    this.selectedColor = color;
+    this.isEllipseMode = true;
+    this.isSquareMode = false;
+    this.isDeleteMode = false;
+    this.selectedText = null;
+    this.isCustomTextMode = false;
+    this.activeButton = this.buttonTypeConst.ELLIPSE;
   }
 
   // Renamed and updated function
@@ -395,14 +439,11 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       let isClose = false;
 
       if (element.type === 'text') {
-        // Approximate text bounding box or use distance to text origin
-        // Using origin distance for simplicity, similar to previous logic
         distance = Math.sqrt(
           Math.pow(clickX - element.x, 2) + Math.pow(clickY - element.y, 2)
         );
-        isClose = distance < this.deletionThreshold; // Use threshold for text
+        isClose = distance < this.deletionThreshold;
       } else if (element.type === 'square') {
-        // Check if click is inside the square bounds
         const isInside =
           clickX >= element.x &&
           clickX <= element.x + element.width &&
@@ -410,18 +451,25 @@ export class SimpleImageEditorComponent implements AfterViewInit {
           clickY <= element.y + element.height;
 
         if (isInside) {
-          // Calculate distance to the center of the square
           const centerX = element.x + element.width / 2;
           const centerY = element.y + element.height / 2;
           distance = Math.sqrt(
             Math.pow(clickX - centerX, 2) + Math.pow(clickY - centerY, 2)
           );
-          isClose = true; // If inside, it's a candidate
+          isClose = true;
         } else {
-          distance = Infinity; // Not inside, ignore
+          distance = Infinity;
         }
+      } else if (element.type === 'ellipse') {
+        // Ellipse hit test: ((x-h)^2/rx^2) + ((y-k)^2/ry^2) <= 1
+        const norm =
+          Math.pow(clickX - element.x, 2) / Math.pow(element.radiusX, 2) +
+          Math.pow(clickY - element.y, 2) / Math.pow(element.radiusY, 2);
+        distance =
+          Math.abs(norm - 1) * Math.max(element.radiusX, element.radiusY);
+        isClose = norm <= 1.05; // 5% tolerance outside ellipse
       } else {
-        distance = Infinity; // Should not happen with defined types
+        distance = Infinity;
       }
 
       if (isClose && distance < minDistance) {
@@ -468,6 +516,18 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         y: event.clientY - rect.top,
       };
     }
+
+    if (
+      this.isEllipseMode &&
+      this.context &&
+      isInCanvas &&
+      !this.isColorPickerOpen
+    ) {
+      this.ellipseStartPosition = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+    }
   }
 
   @HostListener('mousemove', ['$event'])
@@ -493,15 +553,62 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       const currentX = event.clientX - rect.left;
       const currentY = event.clientY - rect.top;
 
+      let dx = currentX - this.squareStartPosition.x;
+      let dy = currentY - this.squareStartPosition.y;
+      let width = dx;
+      let height = dy;
+      if (event.shiftKey) {
+        const side = Math.max(Math.abs(dx), Math.abs(dy));
+        width = side * Math.sign(dx || 1);
+        height = side * Math.sign(dy || 1);
+      }
       this.redrawCanvas();
       this.context.strokeStyle = this.selectedColor;
       this.context.lineWidth = 2;
       this.context.strokeRect(
         this.squareStartPosition.x,
         this.squareStartPosition.y,
-        currentX - this.squareStartPosition.x,
-        currentY - this.squareStartPosition.y
+        width,
+        height
       );
+    }
+
+    if (
+      this.isEllipseMode &&
+      this.ellipseStartPosition &&
+      this.context &&
+      this.image &&
+      isInCanvas &&
+      !this.isColorPickerOpen
+    ) {
+      const currentX = event.clientX - rect.left;
+      const currentY = event.clientY - rect.top;
+      const dx = currentX - this.ellipseStartPosition.x;
+      const dy = currentY - this.ellipseStartPosition.y;
+      let centerX = this.ellipseStartPosition.x + dx / 2;
+      let centerY = this.ellipseStartPosition.y + dy / 2;
+      let radiusX = Math.abs(dx) / 2;
+      let radiusY = Math.abs(dy) / 2;
+      if (event.shiftKey) {
+        const maxRadius = Math.max(radiusX, radiusY);
+        radiusX = maxRadius;
+        radiusY = maxRadius;
+      }
+
+      this.redrawCanvas();
+      this.context.strokeStyle = this.selectedColor;
+      this.context.lineWidth = 2;
+      this.context.beginPath();
+      this.context.ellipse(
+        centerX,
+        centerY,
+        radiusX,
+        radiusY,
+        0,
+        0,
+        2 * Math.PI
+      );
+      this.context.stroke();
     }
   }
 
@@ -521,30 +628,66 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       const endX = event.clientX - rect.left;
       const endY = event.clientY - rect.top;
 
-      const width = endX - this.squareStartPosition.x;
-      const height = endY - this.squareStartPosition.y;
+      let dx = endX - this.squareStartPosition.x;
+      let dy = endY - this.squareStartPosition.y;
+      let finalWidth = dx;
+      let finalHeight = dy;
+      if (event.shiftKey) {
+        const side = Math.max(Math.abs(dx), Math.abs(dy));
+        finalWidth = side * Math.sign(dx || 1);
+        finalHeight = side * Math.sign(dy || 1);
+      }
       let x = this.squareStartPosition.x;
       let y = this.squareStartPosition.y;
-      if (width < 0) {
-        x = x + width;
+      if (finalWidth < 0) {
+        x = x + finalWidth;
       }
-      if (height < 0) {
-        y = y + height;
+      if (finalHeight < 0) {
+        y = y + finalHeight;
       }
-      if (Math.abs(width) > 5 && Math.abs(height) > 5) {
+      if (Math.abs(finalWidth) > 5 && Math.abs(finalHeight) > 5) {
         // Minimum size threshold
         this.elements.push({
           type: 'square',
           x: x,
           y: y,
-          width: Math.abs(width),
-          height: Math.abs(height),
+          width: Math.abs(finalWidth),
+          height: Math.abs(finalHeight),
           color: this.selectedColor,
         });
         this.saveToHistory();
       }
       this.redrawCanvas();
       this.squareStartPosition = null;
+    }
+
+    if (this.isEllipseMode && this.ellipseStartPosition && isInCanvas) {
+      const endX = event.clientX - rect.left;
+      const endY = event.clientY - rect.top;
+      const dx = endX - this.ellipseStartPosition.x;
+      const dy = endY - this.ellipseStartPosition.y;
+      let centerX = this.ellipseStartPosition.x + dx / 2;
+      let centerY = this.ellipseStartPosition.y + dy / 2;
+      let radiusX = Math.abs(dx) / 2;
+      let radiusY = Math.abs(dy) / 2;
+      if (event.shiftKey) {
+        const maxRadius = Math.max(radiusX, radiusY);
+        radiusX = maxRadius;
+        radiusY = maxRadius;
+      }
+      if (radiusX > 5 && radiusY > 5) {
+        this.elements.push({
+          type: 'ellipse',
+          x: centerX,
+          y: centerY,
+          radiusX: radiusX,
+          radiusY: radiusY,
+          color: this.selectedColor,
+        });
+        this.saveToHistory();
+      }
+      this.redrawCanvas();
+      this.ellipseStartPosition = null;
     }
   }
 }
