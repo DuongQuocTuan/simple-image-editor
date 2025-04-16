@@ -25,4 +25,17 @@ export interface EllipseElement {
   color: string;
 }
 
-export type ElementType = TextElement | SquareElement | EllipseElement;
+export interface LineElement {
+  type: 'line';
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  color: string;
+}
+
+export type ElementType =
+  | TextElement
+  | SquareElement
+  | EllipseElement
+  | LineElement;

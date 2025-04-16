@@ -68,11 +68,14 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   };
   private isSquareMode = false;
   private isEllipseMode = false;
+  private isLineMode = false;
   private squareStartPosition: { x: number; y: number } | null = null;
   private ellipseStartPosition: { x: number; y: number } | null = null;
+  private lineStartPosition: { x: number; y: number } | null = null;
   private isColorPickerOpen = false;
   private wasSquareModeBeforeColorPicker = false;
   private wasEllipseModeBeforeColorPicker = false;
+  private wasLineModeBeforeColorPicker = false;
 
   originalFilename = '';
   selectedColor: string = TEXT_COLOR.DEFAULT;
@@ -120,7 +123,8 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.isCustomTextMode = false;
     this.isDeleteMode = false;
     this.isSquareMode = false;
-    this.isEllipseMode = false; // Ensure ellipse mode is off too
+    this.isEllipseMode = false;
+    this.isLineMode = false;
     this.activeButton =
       symbol === this.textSymbolConst.CHECK ? BUTTON_TYPE.CHECK : BUTTON_TYPE.X;
   }
@@ -210,7 +214,9 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   onColorPickerOpen(): void {
     this.isColorPickerOpen = true;
     this.wasSquareModeBeforeColorPicker = this.isSquareMode;
-    this.wasEllipseModeBeforeColorPicker = this.isEllipseMode; // Track ellipse mode too
+    this.wasEllipseModeBeforeColorPicker = this.isEllipseMode;
+    this.wasLineModeBeforeColorPicker = this.isLineMode;
+
     if (this.isSquareMode) {
       this.isSquareMode = false;
       this.squareStartPosition = null;
@@ -218,6 +224,10 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     if (this.isEllipseMode) {
       this.isEllipseMode = false;
       this.ellipseStartPosition = null;
+    }
+    if (this.isLineMode) {
+      this.isLineMode = false;
+      this.lineStartPosition = null;
     }
   }
 
@@ -227,20 +237,39 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     // Restore the correct mode if it was active before color picker
     if (this.wasSquareModeBeforeColorPicker) {
       this.enableSquareMode(this.selectedColor);
-      this.wasSquareModeBeforeColorPicker = false; // Reset flag
-      this.wasEllipseModeBeforeColorPicker = false; // Reset flag
+      this.disableWasModeFlags();
     } else if (this.wasEllipseModeBeforeColorPicker) {
       this.enableEllipseMode(this.selectedColor);
-      this.wasSquareModeBeforeColorPicker = false; // Reset flag
-      this.wasEllipseModeBeforeColorPicker = false; // Reset flag
+      this.disableWasModeFlags();
+    } else if (this.wasLineModeBeforeColorPicker) {
+      this.enableLineMode(this.selectedColor);
+      this.disableWasModeFlags();
     }
+  }
+
+  private disableWasModeFlags(): void {
+    this.wasSquareModeBeforeColorPicker = false;
+    this.wasEllipseModeBeforeColorPicker = false;
+    this.wasLineModeBeforeColorPicker = false;
+  }
+
+  enableLineMode(color: string): void {
+    this.selectedColor = color;
+    this.isLineMode = true;
+    this.isSquareMode = false;
+    this.isEllipseMode = false;
+    this.isDeleteMode = false;
+    this.isCustomTextMode = false;
+    this.selectedText = null;
+    this.activeButton = this.buttonTypeConst.LINE;
   }
 
   enableCustomTextMode(): void {
     this.isCustomTextMode = true;
     this.isDeleteMode = false;
     this.isSquareMode = false;
-    this.isEllipseMode = false; // Ensure ellipse mode is off too
+    this.isEllipseMode = false;
+    this.isLineMode = false;
     this.selectedText = null;
     this.activeButton = BUTTON_TYPE.FREE_TEXT;
     this.selectedColor = TEXT_COLOR.FREE_TEXT;
@@ -382,6 +411,13 @@ export class SimpleImageEditorComponent implements AfterViewInit {
           2 * Math.PI
         );
         this.context.stroke();
+      } else if (element.type === 'line') {
+        this.context.strokeStyle = element.color;
+        this.context.lineWidth = 2;
+        this.context.beginPath();
+        this.context.moveTo(element.startX, element.startY);
+        this.context.lineTo(element.endX, element.endY);
+        this.context.stroke();
       }
     });
   }
@@ -398,13 +434,15 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.selectedText = null;
     this.isCustomTextMode = false;
     this.isSquareMode = false;
-    this.isEllipseMode = false; // Ensure ellipse mode is off too
+    this.isEllipseMode = false;
+    this.isLineMode = false;
   }
 
   enableSquareMode(color: string): void {
     this.selectedColor = color;
     this.isSquareMode = true;
-    this.isEllipseMode = false; // Ensure ellipse mode is off
+    this.isEllipseMode = false;
+    this.isLineMode = false;
     this.isDeleteMode = false;
     this.selectedText = null;
     this.isCustomTextMode = false;
@@ -414,6 +452,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   enableEllipseMode(color: string): void {
     this.selectedColor = color;
     this.isEllipseMode = true;
+    this.isLineMode = false;
     this.isSquareMode = false;
     this.isDeleteMode = false;
     this.selectedText = null;
@@ -468,6 +507,39 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         distance =
           Math.abs(norm - 1) * Math.max(element.radiusX, element.radiusY);
         isClose = norm <= 1.05; // 5% tolerance outside ellipse
+      } else if (element.type === 'line') {
+        // Distance from point to line segment
+        const x1 = element.startX;
+        const y1 = element.startY;
+        const x2 = element.endX;
+        const y2 = element.endY;
+        const A = clickX - x1;
+        const B = clickY - y1;
+        const C = x2 - x1;
+        const D = y2 - y1;
+
+        const dot = A * C + B * D;
+        const len_sq = C * C + D * D;
+        let param = -1;
+        if (len_sq !== 0) param = dot / len_sq;
+
+        let xx, yy;
+
+        if (param < 0) {
+          xx = x1;
+          yy = y1;
+        } else if (param > 1) {
+          xx = x2;
+          yy = y2;
+        } else {
+          xx = x1 + param * C;
+          yy = y1 + param * D;
+        }
+
+        distance = Math.sqrt(
+          (clickX - xx) * (clickX - xx) + (clickY - yy) * (clickY - yy)
+        );
+        isClose = distance < this.deletionThreshold;
       } else {
         distance = Infinity;
       }
@@ -524,6 +596,18 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       !this.isColorPickerOpen
     ) {
       this.ellipseStartPosition = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+    }
+
+    if (
+      this.isLineMode &&
+      this.context &&
+      isInCanvas &&
+      !this.isColorPickerOpen
+    ) {
+      this.lineStartPosition = {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
       };
@@ -610,6 +694,39 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       );
       this.context.stroke();
     }
+
+    if (
+      this.isLineMode &&
+      this.lineStartPosition &&
+      this.context &&
+      this.image &&
+      isInCanvas &&
+      !this.isColorPickerOpen
+    ) {
+      let currentX = event.clientX - rect.left;
+      let currentY = event.clientY - rect.top;
+
+      // Hold shift to constrain to straight lines (multiples of 45°)
+      if (event.shiftKey) {
+        const startX = this.lineStartPosition.x;
+        const startY = this.lineStartPosition.y;
+        const dx = currentX - startX;
+        const dy = currentY - startY;
+        const angle = Math.atan2(dy, dx);
+        const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        currentX = startX + Math.cos(snapAngle) * distance;
+        currentY = startY + Math.sin(snapAngle) * distance;
+      }
+
+      this.redrawCanvas();
+      this.context.strokeStyle = this.selectedColor;
+      this.context.lineWidth = 2;
+      this.context.beginPath();
+      this.context.moveTo(this.lineStartPosition.x, this.lineStartPosition.y);
+      this.context.lineTo(currentX, currentY);
+      this.context.stroke();
+    }
   }
 
   @HostListener('mouseup', ['$event'])
@@ -688,6 +805,41 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       }
       this.redrawCanvas();
       this.ellipseStartPosition = null;
+    }
+
+    if (this.isLineMode && this.lineStartPosition && isInCanvas) {
+      let endX = event.clientX - rect.left;
+      let endY = event.clientY - rect.top;
+
+      // Hold shift to constrain to straight lines (multiples of 45°)
+      if (event.shiftKey) {
+        const startX = this.lineStartPosition.x;
+        const startY = this.lineStartPosition.y;
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const angle = Math.atan2(dy, dx);
+        const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        endX = startX + Math.cos(snapAngle) * distance;
+        endY = startY + Math.sin(snapAngle) * distance;
+      }
+
+      if (
+        Math.abs(endX - this.lineStartPosition.x) > 5 ||
+        Math.abs(endY - this.lineStartPosition.y) > 5
+      ) {
+        this.elements.push({
+          type: 'line',
+          startX: this.lineStartPosition.x,
+          startY: this.lineStartPosition.y,
+          endX: endX,
+          endY: endY,
+          color: this.selectedColor,
+        });
+        this.saveToHistory();
+      }
+      this.redrawCanvas();
+      this.lineStartPosition = null;
     }
   }
 }

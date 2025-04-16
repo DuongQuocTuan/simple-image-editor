@@ -4,4 +4,5 @@ export const BUTTON_TYPE = {
   FREE_TEXT: 'free_text',
   DELETE: 'delete',
   ELLIPSE: 'ellipse',
+  LINE: 'line',
 };

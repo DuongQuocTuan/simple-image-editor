@@ -1,5 +1,5 @@
 <div class="custom-card image-editor-container">
-  <div class="grid grid-cols-3 mt-6">
+  <div class="grid grid-cols-6 mt-6">
     <div class="flex text-left">
       <p-fileUpload
         mode="basic"
@@ -20,7 +20,7 @@
         {{ getDisplayFilename() }}
       </span>
     </div>
-    <div class="text-center">
+    <div class="text-center col-span-4">
       <p-inputnumber
         class="font-size-input mr-2"
         [suffix]="fontSettingConst.FONT_UNIT"
@@ -58,7 +58,7 @@
         (click)="selectText(textSymbolConst.X, textColorConst.X)"
       />
       <p-button
-        class="mr-2"
+        class="mr-8"
         icon="pi pi-pencil"
         [severity]="
           activeButton === buttonTypeConst.FREE_TEXT ? 'info' : 'secondary'
@@ -89,13 +89,25 @@
         pTooltip="Draw Ellipse (Hold Shift for Circle)"
         tooltipPosition="bottom"
         [severity]="
-          activeButton === buttonTypeConst.ELLIPSE ? 'info' : 'secondary'
+          activeButton === buttonTypeConst.ELLIPSE ? 'warn' : 'secondary'
         "
         [raised]="activeButton === buttonTypeConst.ELLIPSE"
         [plain]="
           activeButton !== null && activeButton !== buttonTypeConst.ELLIPSE
         "
         (click)="enableEllipseMode(textColorConst.ELLIPSE)"
+      />
+      <p-button
+        class="mr-2"
+        icon="pi pi-minus"
+        pTooltip="Draw Line (Hold Shift for Straight/Diagonal)"
+        tooltipPosition="bottom"
+        [severity]="
+          activeButton === buttonTypeConst.LINE ? 'help' : 'secondary'
+        "
+        [raised]="activeButton === buttonTypeConst.LINE"
+        [plain]="activeButton !== null && activeButton !== buttonTypeConst.LINE"
+        (click)="enableLineMode(textColorConst.LINE)"
       />
       <p-button
         class="mr-2"
