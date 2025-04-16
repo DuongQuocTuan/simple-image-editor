@@ -68,11 +68,15 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     ARROW: 'ARROW',
   };
 
-  private isArrowMode = false;
+  private currentMode:
+    | 'arrow'
+    | 'line'
+    | 'square'
+    | 'ellipse'
+    | 'customText'
+    | 'delete'
+    | null = null;
   private arrowStartPosition: { x: number; y: number } | null = null;
-  private isSquareMode = false;
-  private isEllipseMode = false;
-  private isLineMode = false;
   private squareStartPosition: { x: number; y: number } | null = null;
   private ellipseStartPosition: { x: number; y: number } | null = null;
   private lineStartPosition: { x: number; y: number } | null = null;
@@ -87,8 +91,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   fontSize = FONT_SETTING.FONT_SIZE;
   showTextDialog = false;
   customTextInput = '';
-  isCustomTextMode = false;
-  isDeleteMode = false;
   activeButton: (typeof BUTTON_TYPE)[keyof typeof BUTTON_TYPE] | null = null;
 
   updateFontSize(): void {
@@ -125,12 +127,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   selectText(symbol: string, color: string): void {
     this.selectedColor = color;
     this.selectedText = { symbol, color, size: this.fontSize };
-    this.isCustomTextMode = false;
-    this.isDeleteMode = false;
-    this.isSquareMode = false;
-    this.isEllipseMode = false;
-    this.isLineMode = false;
-    this.isArrowMode = false;
+    this.currentMode = null;
     this.activeButton =
       symbol === this.textSymbolConst.CHECK ? BUTTON_TYPE.CHECK : BUTTON_TYPE.X;
   }
@@ -149,7 +146,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   }
 
   onCanvasClick(event: MouseEvent): void {
-    if (this.isCustomTextMode) {
+    if (this.currentMode === 'customText') {
       const canvas = this.canvasRef.nativeElement;
       const rect = canvas.getBoundingClientRect();
       this.clickPosition = {
@@ -157,7 +154,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         y: event.clientY - rect.top,
       };
       this.showTextDialog = true;
-    } else if (this.isDeleteMode) {
+    } else if (this.currentMode === 'delete') {
       // Use findNearestElement
       const clickedItem = this.findNearestElement(event);
       if (clickedItem) {
@@ -219,25 +216,25 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   onColorPickerOpen(): void {
     this.isColorPickerOpen = true;
-    this.wasSquareModeBeforeColorPicker = this.isSquareMode;
-    this.wasEllipseModeBeforeColorPicker = this.isEllipseMode;
-    this.wasLineModeBeforeColorPicker = this.isLineMode;
-    this.wasArrowModeBeforeColorPicker = this.isArrowMode;
+    this.wasSquareModeBeforeColorPicker = this.currentMode === 'square';
+    this.wasEllipseModeBeforeColorPicker = this.currentMode === 'ellipse';
+    this.wasLineModeBeforeColorPicker = this.currentMode === 'line';
+    this.wasArrowModeBeforeColorPicker = this.currentMode === 'arrow';
 
-    if (this.isSquareMode) {
-      this.isSquareMode = false;
+    if (this.currentMode === 'square') {
+      this.currentMode = null;
       this.squareStartPosition = null;
     }
-    if (this.isEllipseMode) {
-      this.isEllipseMode = false;
+    if (this.currentMode === 'ellipse') {
+      this.currentMode = null;
       this.ellipseStartPosition = null;
     }
-    if (this.isLineMode) {
-      this.isLineMode = false;
+    if (this.currentMode === 'line') {
+      this.currentMode = null;
       this.lineStartPosition = null;
     }
-    if (this.isArrowMode) {
-      this.isArrowMode = false;
+    if (this.currentMode === 'arrow') {
+      this.currentMode = null;
       this.arrowStartPosition = null;
     }
   }
@@ -263,35 +260,20 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   enableArrowMode(color: string): void {
     this.selectedColor = color;
-    this.isArrowMode = true;
-    this.isLineMode = false;
-    this.isSquareMode = false;
-    this.isEllipseMode = false;
-    this.isDeleteMode = false;
-    this.isCustomTextMode = false;
+    this.currentMode = 'arrow';
     this.selectedText = null;
     this.activeButton = this.buttonTypeConst.ARROW;
   }
 
   enableLineMode(color: string): void {
     this.selectedColor = color;
-    this.isLineMode = true;
-    this.isSquareMode = false;
-    this.isEllipseMode = false;
-    this.isArrowMode = false;
-    this.isDeleteMode = false;
-    this.isCustomTextMode = false;
+    this.currentMode = 'line';
     this.selectedText = null;
     this.activeButton = this.buttonTypeConst.LINE;
   }
 
   enableCustomTextMode(): void {
-    this.isCustomTextMode = true;
-    this.isDeleteMode = false;
-    this.isSquareMode = false;
-    this.isEllipseMode = false;
-    this.isLineMode = false;
-    this.isArrowMode = false;
+    this.currentMode = 'customText';
     this.selectedText = null;
     this.activeButton = BUTTON_TYPE.FREE_TEXT;
     this.selectedColor = TEXT_COLOR.FREE_TEXT;
@@ -329,37 +311,27 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   }
 
   toggleDeleteMode(): void {
-    this.isDeleteMode = !this.isDeleteMode;
-    this.activeButton = this.isDeleteMode ? this.buttonTypeConst.DELETE : null;
+    if (this.currentMode === 'delete') {
+      this.currentMode = null;
+      this.activeButton = null;
+    } else {
+      this.currentMode = 'delete';
+      this.activeButton = this.buttonTypeConst.DELETE;
+    }
     this.selectedText = null;
-    this.isCustomTextMode = false;
-    this.isSquareMode = false;
-    this.isEllipseMode = false;
-    this.isLineMode = false;
-    this.isArrowMode = false;
   }
 
   enableSquareMode(color: string): void {
     this.selectedColor = color;
-    this.isSquareMode = true;
-    this.isEllipseMode = false;
-    this.isLineMode = false;
-    this.isArrowMode = false;
-    this.isDeleteMode = false;
+    this.currentMode = 'square';
     this.selectedText = null;
-    this.isCustomTextMode = false;
     this.activeButton = this.buttonTypeConst.SQUARE;
   }
 
   enableEllipseMode(color: string): void {
     this.selectedColor = color;
-    this.isEllipseMode = true;
-    this.isLineMode = false;
-    this.isSquareMode = false;
-    this.isArrowMode = false;
-    this.isDeleteMode = false;
+    this.currentMode = 'ellipse';
     this.selectedText = null;
-    this.isCustomTextMode = false;
     this.activeButton = this.buttonTypeConst.ELLIPSE;
   }
 
@@ -560,102 +532,49 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     let closestItem: ElementType | null = null;
     let minDistance = Infinity;
 
-    // Check all elements
     this.elements.forEach((element) => {
-      let distance: number = Infinity;
-      let isClose = false;
+      let distance;
+      let isClose;
 
-      if (element.type === 'text') {
-        distance = Math.sqrt(
-          Math.pow(clickX - element.x, 2) + Math.pow(clickY - element.y, 2)
-        );
-        isClose = distance < this.deletionThreshold;
-      } else if (element.type === 'square') {
-        const isInside =
-          clickX >= element.x &&
-          clickX <= element.x + element.width &&
-          clickY >= element.y &&
-          clickY <= element.y + element.height;
-
-        if (isInside) {
-          const centerX = element.x + element.width / 2;
-          const centerY = element.y + element.height / 2;
-          distance = Math.sqrt(
-            Math.pow(clickX - centerX, 2) + Math.pow(clickY - centerY, 2)
-          );
-          isClose = true;
-        }
-      } else if (element.type === 'ellipse') {
-        // Ellipse hit test: ((x-h)^2/rx^2) + ((y-k)^2/ry^2) <= 1
-        const norm =
-          Math.pow(clickX - element.x, 2) / Math.pow(element.radiusX, 2) +
-          Math.pow(clickY - element.y, 2) / Math.pow(element.radiusY, 2);
-        distance =
-          Math.abs(norm - 1) * Math.max(element.radiusX, element.radiusY);
-        isClose = norm <= 1.05; // 5% tolerance outside ellipse
-      } else if (element.type === 'line') {
-        // Distance from point to line segment
-        const x1 = element.startX;
-        const y1 = element.startY;
-        const x2 = element.endX;
-        const y2 = element.endY;
-        const A = clickX - x1;
-        const B = clickY - y1;
-        const C = x2 - x1;
-        const D = y2 - y1;
-
-        const dot = A * C + B * D;
-        const len_sq = C * C + D * D;
-        let param = -1;
-        if (len_sq !== 0) param = dot / len_sq;
-
-        let xx, yy;
-
-        if (param < 0) {
-          xx = x1;
-          yy = y1;
-        } else if (param > 1) {
-          xx = x2;
-          yy = y2;
-        } else {
-          xx = x1 + param * C;
-          yy = y1 + param * D;
-        }
-
-        distance = Math.sqrt(
-          (clickX - xx) * (clickX - xx) + (clickY - yy) * (clickY - yy)
-        );
-        isClose = distance < this.deletionThreshold;
-      } else if (element.type === 'arrow') {
-        const x1 = element.startX;
-        const y1 = element.startY;
-        const x2 = element.endX;
-        const y2 = element.endY;
-        const A = clickX - x1;
-        const B = clickY - y1;
-        const C = x2 - x1;
-        const D = y2 - y1;
-        const dot = A * C + B * D;
-        const len_sq = C * C + D * D;
-        let param = -1;
-        if (len_sq !== 0) {
-          param = dot / len_sq;
-        }
-        let xx, yy;
-        if (param < 0) {
-          xx = x1;
-          yy = y1;
-        } else if (param > 1) {
-          xx = x2;
-          yy = y2;
-        } else {
-          xx = x1 + param * C;
-          yy = y1 + param * D;
-        }
-        distance = Math.sqrt((clickX - xx) ** 2 + (clickY - yy) ** 2);
-        isClose = distance < this.deletionThreshold;
-      } else {
-        distance = Infinity;
+      switch (element.type) {
+        case 'text':
+          ({ distance, isClose } = this.distanceToText(
+            element,
+            clickX,
+            clickY
+          ));
+          break;
+        case 'square':
+          ({ distance, isClose } = this.distanceToSquare(
+            element,
+            clickX,
+            clickY
+          ));
+          break;
+        case 'ellipse':
+          ({ distance, isClose } = this.distanceToEllipse(
+            element,
+            clickX,
+            clickY
+          ));
+          break;
+        case 'line':
+          ({ distance, isClose } = this.distanceToLine(
+            element,
+            clickX,
+            clickY
+          ));
+          break;
+        case 'arrow':
+          ({ distance, isClose } = this.distanceToArrow(
+            element,
+            clickX,
+            clickY
+          ));
+          break;
+        default:
+          distance = Infinity;
+          isClose = false;
       }
 
       if (isClose && distance < minDistance) {
@@ -665,6 +584,124 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     });
 
     return closestItem;
+  }
+
+  private distanceToText(
+    element: any,
+    clickX: number,
+    clickY: number
+  ): { distance: number; isClose: boolean } {
+    const distance = Math.sqrt(
+      Math.pow(clickX - element.x, 2) + Math.pow(clickY - element.y, 2)
+    );
+    return { distance, isClose: distance < this.deletionThreshold };
+  }
+
+  private distanceToSquare(
+    element: any,
+    clickX: number,
+    clickY: number
+  ): { distance: number; isClose: boolean } {
+    const isInside =
+      clickX >= element.x &&
+      clickX <= element.x + element.width &&
+      clickY >= element.y &&
+      clickY <= element.y + element.height;
+
+    if (isInside) {
+      const centerX = element.x + element.width / 2;
+      const centerY = element.y + element.height / 2;
+      const distance = Math.sqrt(
+        Math.pow(clickX - centerX, 2) + Math.pow(clickY - centerY, 2)
+      );
+      return { distance, isClose: true };
+    }
+    return { distance: Infinity, isClose: false };
+  }
+
+  private distanceToEllipse(
+    element: any,
+    clickX: number,
+    clickY: number
+  ): { distance: number; isClose: boolean } {
+    const norm =
+      Math.pow(clickX - element.x, 2) / Math.pow(element.radiusX, 2) +
+      Math.pow(clickY - element.y, 2) / Math.pow(element.radiusY, 2);
+    const distance =
+      Math.abs(norm - 1) * Math.max(element.radiusX, element.radiusY);
+    return { distance, isClose: norm <= 1.05 };
+  }
+
+  private distanceToLine(
+    element: any,
+    clickX: number,
+    clickY: number
+  ): { distance: number; isClose: boolean } {
+    const x1 = element.startX;
+    const y1 = element.startY;
+    const x2 = element.endX;
+    const y2 = element.endY;
+    const A = clickX - x1;
+    const B = clickY - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+
+    const dot = A * C + B * D;
+    const len_sq = C * C + D * D;
+    let param = -1;
+    if (len_sq !== 0) param = dot / len_sq;
+
+    let xx, yy;
+
+    if (param < 0) {
+      xx = x1;
+      yy = y1;
+    } else if (param > 1) {
+      xx = x2;
+      yy = y2;
+    } else {
+      xx = x1 + param * C;
+      yy = y1 + param * D;
+    }
+
+    const distance = Math.sqrt(
+      (clickX - xx) * (clickX - xx) + (clickY - yy) * (clickY - yy)
+    );
+    return { distance, isClose: distance < this.deletionThreshold };
+  }
+
+  private distanceToArrow(
+    element: any,
+    clickX: number,
+    clickY: number
+  ): { distance: number; isClose: boolean } {
+    const x1 = element.startX;
+    const y1 = element.startY;
+    const x2 = element.endX;
+    const y2 = element.endY;
+    const A = clickX - x1;
+    const B = clickY - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+    const dot = A * C + B * D;
+    const len_sq = C * C + D * D;
+    let param = -1;
+    if (len_sq !== 0) {
+      param = dot / len_sq;
+    }
+    let xx, yy;
+    if (param < 0) {
+      xx = x1;
+      yy = y1;
+    } else if (param > 1) {
+      xx = x2;
+      yy = y2;
+    } else {
+      xx = x1 + param * C;
+      yy = y1 + param * D;
+    }
+    const distance = Math.sqrt((clickX - xx) ** 2 + (clickY - yy) ** 2);
+    return { distance, isClose: distance < this.deletionThreshold };
   }
 
   @HostListener('document:keydown.control.z', ['$event'])
@@ -691,48 +728,69 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       event.clientY >= rect.top &&
       event.clientY <= rect.bottom;
 
-    if (
-      this.isSquareMode &&
-      this.context &&
-      isInCanvas &&
-      !this.isColorPickerOpen
-    ) {
+    switch (this.currentMode) {
+      case 'square':
+        this.handleSquareMouseDown(event, rect, isInCanvas);
+        break;
+      case 'ellipse':
+        this.handleEllipseMouseDown(event, rect, isInCanvas);
+        break;
+      case 'line':
+        this.handleLineMouseDown(event, rect, isInCanvas);
+        break;
+      case 'arrow':
+        this.handleArrowMouseDown(event, rect, isInCanvas);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private handleSquareMouseDown(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
+    if (this.context && isInCanvas && !this.isColorPickerOpen) {
       this.squareStartPosition = {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
       };
     }
+  }
 
-    if (
-      this.isEllipseMode &&
-      this.context &&
-      isInCanvas &&
-      !this.isColorPickerOpen
-    ) {
+  private handleEllipseMouseDown(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
+    if (this.context && isInCanvas && !this.isColorPickerOpen) {
       this.ellipseStartPosition = {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
       };
     }
+  }
 
-    if (
-      this.isLineMode &&
-      this.context &&
-      isInCanvas &&
-      !this.isColorPickerOpen
-    ) {
+  private handleLineMouseDown(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
+    if (this.context && isInCanvas && !this.isColorPickerOpen) {
       this.lineStartPosition = {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
       };
     }
+  }
 
-    if (
-      this.isArrowMode &&
-      this.context &&
-      isInCanvas &&
-      !this.isColorPickerOpen
-    ) {
+  private handleArrowMouseDown(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
+    if (this.context && isInCanvas && !this.isColorPickerOpen) {
       this.arrowStartPosition = {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
@@ -752,8 +810,30 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       event.clientY >= rect.top &&
       event.clientY <= rect.bottom;
 
+    switch (this.currentMode) {
+      case 'square':
+        this.handleSquareMouseMove(event, rect, isInCanvas);
+        break;
+      case 'ellipse':
+        this.handleEllipseMouseMove(event, rect, isInCanvas);
+        break;
+      case 'line':
+        this.handleLineMouseMove(event, rect, isInCanvas);
+        break;
+      case 'arrow':
+        this.handleArrowMouseMove(event, rect, isInCanvas);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private handleSquareMouseMove(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
     if (
-      this.isSquareMode &&
       this.squareStartPosition &&
       this.context &&
       this.image &&
@@ -782,9 +862,14 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         height
       );
     }
+  }
 
+  private handleEllipseMouseMove(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
     if (
-      this.isEllipseMode &&
       this.ellipseStartPosition &&
       this.context &&
       this.image &&
@@ -820,9 +905,14 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       );
       this.context.stroke();
     }
+  }
 
+  private handleLineMouseMove(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
     if (
-      this.isLineMode &&
       this.lineStartPosition &&
       this.context &&
       this.image &&
@@ -853,9 +943,14 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.context.lineTo(currentX, currentY);
       this.context.stroke();
     }
+  }
 
+  private handleArrowMouseMove(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
     if (
-      this.isArrowMode &&
       this.arrowStartPosition &&
       this.context &&
       this.image &&
@@ -915,7 +1010,30 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       event.clientY >= rect.top &&
       event.clientY <= rect.bottom;
 
-    if (this.isSquareMode && this.squareStartPosition && isInCanvas) {
+    switch (this.currentMode) {
+      case 'square':
+        this.handleSquareMouseUp(event, rect, isInCanvas);
+        break;
+      case 'ellipse':
+        this.handleEllipseMouseUp(event, rect, isInCanvas);
+        break;
+      case 'line':
+        this.handleLineMouseUp(event, rect, isInCanvas);
+        break;
+      case 'arrow':
+        this.handleArrowMouseUp(event, rect, isInCanvas);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private handleSquareMouseUp(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
+    if (this.squareStartPosition && isInCanvas) {
       const endX = event.clientX - rect.left;
       const endY = event.clientY - rect.top;
 
@@ -951,8 +1069,14 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.redrawCanvas();
       this.squareStartPosition = null;
     }
+  }
 
-    if (this.isEllipseMode && this.ellipseStartPosition && isInCanvas) {
+  private handleEllipseMouseUp(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
+    if (this.ellipseStartPosition && isInCanvas) {
       const endX = event.clientX - rect.left;
       const endY = event.clientY - rect.top;
       const dx = endX - this.ellipseStartPosition.x;
@@ -980,8 +1104,14 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.redrawCanvas();
       this.ellipseStartPosition = null;
     }
+  }
 
-    if (this.isLineMode && this.lineStartPosition && isInCanvas) {
+  private handleLineMouseUp(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
+    if (this.lineStartPosition && isInCanvas) {
       let endX = event.clientX - rect.left;
       let endY = event.clientY - rect.top;
 
@@ -1015,8 +1145,14 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.redrawCanvas();
       this.lineStartPosition = null;
     }
+  }
 
-    if (this.isArrowMode && this.arrowStartPosition && isInCanvas) {
+  private handleArrowMouseUp(
+    event: MouseEvent,
+    rect: DOMRect,
+    isInCanvas: boolean
+  ): void {
+    if (this.arrowStartPosition && isInCanvas) {
       let endX = event.clientX - rect.left;
       let endY = event.clientY - rect.top;
 
