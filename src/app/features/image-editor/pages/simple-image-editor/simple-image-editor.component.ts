@@ -529,7 +529,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
     // Check all elements
     this.elements.forEach((element) => {
-      let distance: number;
+      let distance: number = Infinity;
       let isClose = false;
 
       if (element.type === 'text') {
@@ -551,8 +551,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
             Math.pow(clickX - centerX, 2) + Math.pow(clickY - centerY, 2)
           );
           isClose = true;
-        } else {
-          distance = Infinity;
         }
       } else if (element.type === 'ellipse') {
         // Ellipse hit test: ((x-h)^2/rx^2) + ((y-k)^2/ry^2) <= 1
@@ -594,6 +592,34 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         distance = Math.sqrt(
           (clickX - xx) * (clickX - xx) + (clickY - yy) * (clickY - yy)
         );
+        isClose = distance < this.deletionThreshold;
+      } else if (element.type === 'arrow') {
+        const x1 = element.startX;
+        const y1 = element.startY;
+        const x2 = element.endX;
+        const y2 = element.endY;
+        const A = clickX - x1;
+        const B = clickY - y1;
+        const C = x2 - x1;
+        const D = y2 - y1;
+        const dot = A * C + B * D;
+        const len_sq = C * C + D * D;
+        let param = -1;
+        if (len_sq !== 0) {
+          param = dot / len_sq;
+        }
+        let xx, yy;
+        if (param < 0) {
+          xx = x1;
+          yy = y1;
+        } else if (param > 1) {
+          xx = x2;
+          yy = y2;
+        } else {
+          xx = x1 + param * C;
+          yy = y1 + param * D;
+        }
+        distance = Math.sqrt((clickX - xx) ** 2 + (clickY - yy) ** 2);
         isClose = distance < this.deletionThreshold;
       } else {
         distance = Infinity;
