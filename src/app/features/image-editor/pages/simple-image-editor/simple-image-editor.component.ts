@@ -499,7 +499,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.context.stroke();
 
     // Draw arrowhead
-    const headlen = 18; // length of head in pixels
+    const headLength = 18; // length of head in pixels
     const dx = element.endX - element.startX;
     const dy = element.endY - element.startY;
     const angle = Math.atan2(dy, dx);
@@ -507,8 +507,8 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.context.beginPath();
       this.context.moveTo(element.endX, element.endY);
       this.context.lineTo(
-        element.endX - headlen * Math.cos(angle + offset),
-        element.endY - headlen * Math.sin(angle + offset)
+        element.endX - headLength * Math.cos(angle + offset),
+        element.endY - headLength * Math.sin(angle + offset)
       );
       this.context.stroke();
     }
@@ -982,7 +982,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.context.stroke();
 
       // Draw arrowhead
-      const headlen = 18; // length of head in pixels
+      const headLength = 18; // length of head in pixels
       const dx = currentX - this.arrowStartPosition.x;
       const dy = currentY - this.arrowStartPosition.y;
       const angle = Math.atan2(dy, dx);
@@ -990,8 +990,8 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         this.context.beginPath();
         this.context.moveTo(currentX, currentY);
         this.context.lineTo(
-          currentX - headlen * Math.cos(angle + offset),
-          currentY - headlen * Math.sin(angle + offset)
+          currentX - headLength * Math.cos(angle + offset),
+          currentY - headLength * Math.sin(angle + offset)
         );
         this.context.stroke();
       }
