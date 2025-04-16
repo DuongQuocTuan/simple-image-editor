@@ -65,7 +65,11 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     ...BUTTON_TYPE,
     SQUARE: 'SQUARE',
     ELLIPSE: 'ELLIPSE',
+    ARROW: 'ARROW',
   };
+
+  private isArrowMode = false;
+  private arrowStartPosition: { x: number; y: number } | null = null;
   private isSquareMode = false;
   private isEllipseMode = false;
   private isLineMode = false;
@@ -76,6 +80,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   private wasSquareModeBeforeColorPicker = false;
   private wasEllipseModeBeforeColorPicker = false;
   private wasLineModeBeforeColorPicker = false;
+  private wasArrowModeBeforeColorPicker = false;
 
   originalFilename = '';
   selectedColor: string = TEXT_COLOR.DEFAULT;
@@ -125,6 +130,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.isSquareMode = false;
     this.isEllipseMode = false;
     this.isLineMode = false;
+    this.isArrowMode = false;
     this.activeButton =
       symbol === this.textSymbolConst.CHECK ? BUTTON_TYPE.CHECK : BUTTON_TYPE.X;
   }
@@ -216,6 +222,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.wasSquareModeBeforeColorPicker = this.isSquareMode;
     this.wasEllipseModeBeforeColorPicker = this.isEllipseMode;
     this.wasLineModeBeforeColorPicker = this.isLineMode;
+    this.wasArrowModeBeforeColorPicker = this.isArrowMode;
 
     if (this.isSquareMode) {
       this.isSquareMode = false;
@@ -228,6 +235,10 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     if (this.isLineMode) {
       this.isLineMode = false;
       this.lineStartPosition = null;
+    }
+    if (this.isArrowMode) {
+      this.isArrowMode = false;
+      this.arrowStartPosition = null;
     }
   }
 
@@ -244,6 +255,9 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     } else if (this.wasLineModeBeforeColorPicker) {
       this.enableLineMode(this.selectedColor);
       this.disableWasModeFlags();
+    } else if (this.wasArrowModeBeforeColorPicker) {
+      this.enableArrowMode(this.selectedColor);
+      this.disableWasModeFlags();
     }
   }
 
@@ -251,6 +265,19 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.wasSquareModeBeforeColorPicker = false;
     this.wasEllipseModeBeforeColorPicker = false;
     this.wasLineModeBeforeColorPicker = false;
+    this.wasArrowModeBeforeColorPicker = false;
+  }
+
+  enableArrowMode(color: string): void {
+    this.selectedColor = color;
+    this.isArrowMode = true;
+    this.isLineMode = false;
+    this.isSquareMode = false;
+    this.isEllipseMode = false;
+    this.isDeleteMode = false;
+    this.isCustomTextMode = false;
+    this.selectedText = null;
+    this.activeButton = this.buttonTypeConst.ARROW;
   }
 
   enableLineMode(color: string): void {
@@ -258,6 +285,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.isLineMode = true;
     this.isSquareMode = false;
     this.isEllipseMode = false;
+    this.isArrowMode = false;
     this.isDeleteMode = false;
     this.isCustomTextMode = false;
     this.selectedText = null;
@@ -270,6 +298,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.isSquareMode = false;
     this.isEllipseMode = false;
     this.isLineMode = false;
+    this.isArrowMode = false;
     this.selectedText = null;
     this.activeButton = BUTTON_TYPE.FREE_TEXT;
     this.selectedColor = TEXT_COLOR.FREE_TEXT;
@@ -418,6 +447,29 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         this.context.moveTo(element.startX, element.startY);
         this.context.lineTo(element.endX, element.endY);
         this.context.stroke();
+      } else if (element.type === 'arrow') {
+        this.context.strokeStyle = element.color;
+        this.context.lineWidth = 2;
+        // Draw main line
+        this.context.beginPath();
+        this.context.moveTo(element.startX, element.startY);
+        this.context.lineTo(element.endX, element.endY);
+        this.context.stroke();
+
+        // Draw arrowhead
+        const headlen = 18; // length of head in pixels
+        const dx = element.endX - element.startX;
+        const dy = element.endY - element.startY;
+        const angle = Math.atan2(dy, dx);
+        for (const offset of [Math.PI / 7, -Math.PI / 7]) {
+          this.context.beginPath();
+          this.context.moveTo(element.endX, element.endY);
+          this.context.lineTo(
+            element.endX - headlen * Math.cos(angle + offset),
+            element.endY - headlen * Math.sin(angle + offset)
+          );
+          this.context.stroke();
+        }
       }
     });
   }
@@ -436,6 +488,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.isSquareMode = false;
     this.isEllipseMode = false;
     this.isLineMode = false;
+    this.isArrowMode = false;
   }
 
   enableSquareMode(color: string): void {
@@ -443,6 +496,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.isSquareMode = true;
     this.isEllipseMode = false;
     this.isLineMode = false;
+    this.isArrowMode = false;
     this.isDeleteMode = false;
     this.selectedText = null;
     this.isCustomTextMode = false;
@@ -454,6 +508,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.isEllipseMode = true;
     this.isLineMode = false;
     this.isSquareMode = false;
+    this.isArrowMode = false;
     this.isDeleteMode = false;
     this.selectedText = null;
     this.isCustomTextMode = false;
@@ -612,6 +667,18 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         y: event.clientY - rect.top,
       };
     }
+
+    if (
+      this.isArrowMode &&
+      this.context &&
+      isInCanvas &&
+      !this.isColorPickerOpen
+    ) {
+      this.arrowStartPosition = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+    }
   }
 
   @HostListener('mousemove', ['$event'])
@@ -724,6 +791,39 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.context.lineWidth = 2;
       this.context.beginPath();
       this.context.moveTo(this.lineStartPosition.x, this.lineStartPosition.y);
+      this.context.lineTo(currentX, currentY);
+      this.context.stroke();
+    }
+
+    if (
+      this.isArrowMode &&
+      this.arrowStartPosition &&
+      this.context &&
+      this.image &&
+      isInCanvas &&
+      !this.isColorPickerOpen
+    ) {
+      let currentX = event.clientX - rect.left;
+      let currentY = event.clientY - rect.top;
+
+      // Hold shift to constrain to straight lines (multiples of 45°)
+      if (event.shiftKey) {
+        const startX = this.arrowStartPosition.x;
+        const startY = this.arrowStartPosition.y;
+        const dx = currentX - startX;
+        const dy = currentY - startY;
+        const angle = Math.atan2(dy, dx);
+        const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        currentX = startX + Math.cos(snapAngle) * distance;
+        currentY = startY + Math.sin(snapAngle) * distance;
+      }
+
+      this.redrawCanvas();
+      this.context.strokeStyle = this.selectedColor;
+      this.context.lineWidth = 2;
+      this.context.beginPath();
+      this.context.moveTo(this.arrowStartPosition.x, this.arrowStartPosition.y);
       this.context.lineTo(currentX, currentY);
       this.context.stroke();
     }
@@ -840,6 +940,40 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       }
       this.redrawCanvas();
       this.lineStartPosition = null;
+    }
+
+    if (this.isArrowMode && this.arrowStartPosition && isInCanvas) {
+      let endX = event.clientX - rect.left;
+      let endY = event.clientY - rect.top;
+
+      if (event.shiftKey) {
+        const startX = this.arrowStartPosition.x;
+        const startY = this.arrowStartPosition.y;
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const angle = Math.atan2(dy, dx);
+        const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        endX = startX + Math.cos(snapAngle) * distance;
+        endY = startY + Math.sin(snapAngle) * distance;
+      }
+
+      if (
+        Math.abs(endX - this.arrowStartPosition.x) > 5 ||
+        Math.abs(endY - this.arrowStartPosition.y) > 5
+      ) {
+        this.elements.push({
+          type: 'arrow',
+          startX: this.arrowStartPosition.x,
+          startY: this.arrowStartPosition.y,
+          endX: endX,
+          endY: endY,
+          color: this.selectedColor,
+        });
+        this.saveToHistory();
+      }
+      this.redrawCanvas();
+      this.arrowStartPosition = null;
     }
   }
 }

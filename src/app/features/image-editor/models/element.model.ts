@@ -34,8 +34,18 @@ export interface LineElement {
   color: string;
 }
 
+export interface ArrowElement {
+  type: 'arrow';
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  color: string;
+}
+
 export type ElementType =
   | TextElement
   | SquareElement
   | EllipseElement
-  | LineElement;
+  | LineElement
+  | ArrowElement;

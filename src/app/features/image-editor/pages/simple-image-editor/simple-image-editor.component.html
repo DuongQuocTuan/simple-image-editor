@@ -37,6 +37,7 @@
         (onShow)="onColorPickerOpen()"
         (onHide)="onColorPickerClose()"
       />
+
       <p-button
         class="mr-2"
         icon="pi pi-check"
@@ -69,6 +70,7 @@
         "
         (click)="enableCustomTextMode()"
       />
+
       <p-button
         class="mr-2"
         icon="pi pi-stop"
@@ -97,6 +99,7 @@
         "
         (click)="enableEllipseMode(textColorConst.ELLIPSE)"
       />
+
       <p-button
         class="mr-2"
         icon="pi pi-minus"
@@ -110,6 +113,21 @@
         (click)="enableLineMode(textColorConst.LINE)"
       />
       <p-button
+        class="mr-8"
+        icon="pi pi-arrow-right"
+        pTooltip="Draw Arrow (Hold Shift for Straight/Diagonal)"
+        tooltipPosition="bottom"
+        [severity]="
+          activeButton === buttonTypeConst.ARROW ? 'help' : 'secondary'
+        "
+        [raised]="activeButton === buttonTypeConst.ARROW"
+        [plain]="
+          activeButton !== null && activeButton !== buttonTypeConst.ARROW
+        "
+        (click)="enableArrowMode(textColorConst.LINE)"
+      />
+
+      <p-button
         class="mr-2"
         icon="pi pi-chevron-left"
         [outlined]="true"
@@ -121,6 +139,7 @@
         [outlined]="true"
         (click)="redo(); $event.stopPropagation()"
       />
+
       <p-button
         icon="pi pi-trash"
         pTooltip="Click at the start of text to delete it - especially important for long text elements"

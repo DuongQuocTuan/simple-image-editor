@@ -5,4 +5,5 @@ export const BUTTON_TYPE = {
   DELETE: 'delete',
   ELLIPSE: 'ellipse',
   LINE: 'line',
+  ARROW: 'arrow',
 };
