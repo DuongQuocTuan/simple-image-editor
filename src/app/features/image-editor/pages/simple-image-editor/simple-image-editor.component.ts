@@ -261,13 +261,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     }
   }
 
-  private disableWasModeFlags(): void {
-    this.wasSquareModeBeforeColorPicker = false;
-    this.wasEllipseModeBeforeColorPicker = false;
-    this.wasLineModeBeforeColorPicker = false;
-    this.wasArrowModeBeforeColorPicker = false;
-  }
-
   enableArrowMode(color: string): void {
     this.selectedColor = color;
     this.isArrowMode = true;
@@ -333,6 +326,48 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     if (name.length <= 20) return this.originalFilename;
 
     return `${name.substring(0, 20)}...${ext ? '.' + ext : ''}`;
+  }
+
+  toggleDeleteMode(): void {
+    this.isDeleteMode = !this.isDeleteMode;
+    this.activeButton = this.isDeleteMode ? this.buttonTypeConst.DELETE : null;
+    this.selectedText = null;
+    this.isCustomTextMode = false;
+    this.isSquareMode = false;
+    this.isEllipseMode = false;
+    this.isLineMode = false;
+    this.isArrowMode = false;
+  }
+
+  enableSquareMode(color: string): void {
+    this.selectedColor = color;
+    this.isSquareMode = true;
+    this.isEllipseMode = false;
+    this.isLineMode = false;
+    this.isArrowMode = false;
+    this.isDeleteMode = false;
+    this.selectedText = null;
+    this.isCustomTextMode = false;
+    this.activeButton = this.buttonTypeConst.SQUARE;
+  }
+
+  enableEllipseMode(color: string): void {
+    this.selectedColor = color;
+    this.isEllipseMode = true;
+    this.isLineMode = false;
+    this.isSquareMode = false;
+    this.isArrowMode = false;
+    this.isDeleteMode = false;
+    this.selectedText = null;
+    this.isCustomTextMode = false;
+    this.activeButton = this.buttonTypeConst.ELLIPSE;
+  }
+
+  private disableWasModeFlags(): void {
+    this.wasSquareModeBeforeColorPicker = false;
+    this.wasEllipseModeBeforeColorPicker = false;
+    this.wasLineModeBeforeColorPicker = false;
+    this.wasArrowModeBeforeColorPicker = false;
   }
 
   private drawImage(): void {
@@ -413,106 +448,104 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     // Draw elements based on type
     this.elements.forEach((element) => {
       if (!this.context) return;
-      if (element.type === 'text') {
-        this.context.font = `${element.size}${FONT_SETTING.FONT_UNIT} ${FONT_SETTING.FONT_FAMILY}`;
-        this.context.fillStyle = element.color;
-        this.context.fillText(element.text, element.x, element.y);
-      } else if (element.type === 'square') {
-        this.context.strokeStyle = element.color;
-        this.context.lineWidth = 2;
-        this.context.strokeRect(
-          element.x,
-          element.y,
-          element.width,
-          element.height
-        );
-      } else if (element.type === 'ellipse') {
-        this.context.strokeStyle = element.color;
-        this.context.lineWidth = 2;
-        this.context.beginPath();
-        this.context.ellipse(
-          element.x,
-          element.y,
-          element.radiusX,
-          element.radiusY,
-          0,
-          0,
-          2 * Math.PI
-        );
-        this.context.stroke();
-      } else if (element.type === 'line') {
-        this.context.strokeStyle = element.color;
-        this.context.lineWidth = 2;
-        this.context.beginPath();
-        this.context.moveTo(element.startX, element.startY);
-        this.context.lineTo(element.endX, element.endY);
-        this.context.stroke();
-      } else if (element.type === 'arrow') {
-        this.context.strokeStyle = element.color;
-        this.context.lineWidth = 2;
-        // Draw main line
-        this.context.beginPath();
-        this.context.moveTo(element.startX, element.startY);
-        this.context.lineTo(element.endX, element.endY);
-        this.context.stroke();
-
-        // Draw arrowhead
-        const headlen = 18; // length of head in pixels
-        const dx = element.endX - element.startX;
-        const dy = element.endY - element.startY;
-        const angle = Math.atan2(dy, dx);
-        for (const offset of [Math.PI / 7, -Math.PI / 7]) {
-          this.context.beginPath();
-          this.context.moveTo(element.endX, element.endY);
-          this.context.lineTo(
-            element.endX - headlen * Math.cos(angle + offset),
-            element.endY - headlen * Math.sin(angle + offset)
-          );
-          this.context.stroke();
-        }
+      switch (element.type) {
+        case 'text':
+          this.drawText(element);
+          break;
+        case 'square':
+          this.drawSquare(element);
+          break;
+        case 'ellipse':
+          this.drawEllipse(element);
+          break;
+        case 'line':
+          this.drawLine(element);
+          break;
+        case 'arrow':
+          this.drawArrow(element);
+          break;
+        default:
+          break;
       }
     });
+  }
+
+  private drawText(element: any): void {
+    if (!this.context) return;
+    this.context.font = `${element.size}${FONT_SETTING.FONT_UNIT} ${FONT_SETTING.FONT_FAMILY}`;
+    this.context.fillStyle = element.color;
+    this.context.fillText(element.text, element.x, element.y);
+  }
+
+  private drawSquare(element: any): void {
+    if (!this.context) return;
+    this.context.strokeStyle = element.color;
+    this.context.lineWidth = 2;
+    this.context.strokeRect(
+      element.x,
+      element.y,
+      element.width,
+      element.height
+    );
+  }
+
+  private drawEllipse(element: any): void {
+    if (!this.context) return;
+    this.context.strokeStyle = element.color;
+    this.context.lineWidth = 2;
+    this.context.beginPath();
+    this.context.ellipse(
+      element.x,
+      element.y,
+      element.radiusX,
+      element.radiusY,
+      0,
+      0,
+      2 * Math.PI
+    );
+    this.context.stroke();
+  }
+
+  private drawLine(element: any): void {
+    if (!this.context) return;
+    this.context.strokeStyle = element.color;
+    this.context.lineWidth = 2;
+    this.context.beginPath();
+    this.context.moveTo(element.startX, element.startY);
+    this.context.lineTo(element.endX, element.endY);
+    this.context.stroke();
+  }
+
+  private drawArrow(element: any): void {
+    if (!this.context) return;
+    this.context.strokeStyle = element.color;
+    this.context.lineWidth = 2;
+    // Draw main line
+    this.context.beginPath();
+    this.context.moveTo(element.startX, element.startY);
+    this.context.lineTo(element.endX, element.endY);
+    this.context.stroke();
+
+    // Draw arrowhead
+    const headlen = 18; // length of head in pixels
+    const dx = element.endX - element.startX;
+    const dy = element.endY - element.startY;
+    const angle = Math.atan2(dy, dx);
+    for (const offset of [Math.PI / 7, -Math.PI / 7]) {
+      this.context.beginPath();
+      this.context.moveTo(element.endX, element.endY);
+      this.context.lineTo(
+        element.endX - headlen * Math.cos(angle + offset),
+        element.endY - headlen * Math.sin(angle + offset)
+      );
+      this.context.stroke();
+    }
   }
 
   private resetTextInput(): void {
     this.clickPosition = null;
     this.customTextInput = '';
     this.showTextDialog = false;
-  }
-
-  toggleDeleteMode(): void {
-    this.isDeleteMode = !this.isDeleteMode;
-    this.activeButton = this.isDeleteMode ? this.buttonTypeConst.DELETE : null;
-    this.selectedText = null;
-    this.isCustomTextMode = false;
-    this.isSquareMode = false;
-    this.isEllipseMode = false;
-    this.isLineMode = false;
-    this.isArrowMode = false;
-  }
-
-  enableSquareMode(color: string): void {
-    this.selectedColor = color;
-    this.isSquareMode = true;
-    this.isEllipseMode = false;
-    this.isLineMode = false;
-    this.isArrowMode = false;
-    this.isDeleteMode = false;
-    this.selectedText = null;
-    this.isCustomTextMode = false;
-    this.activeButton = this.buttonTypeConst.SQUARE;
-  }
-
-  enableEllipseMode(color: string): void {
-    this.selectedColor = color;
-    this.isEllipseMode = true;
-    this.isLineMode = false;
-    this.isSquareMode = false;
-    this.isArrowMode = false;
-    this.isDeleteMode = false;
-    this.selectedText = null;
-    this.isCustomTextMode = false;
-    this.activeButton = this.buttonTypeConst.ELLIPSE;
   }
 
   // Renamed and updated function
