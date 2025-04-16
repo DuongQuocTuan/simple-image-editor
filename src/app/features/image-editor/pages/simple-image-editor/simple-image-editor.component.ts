@@ -826,6 +826,21 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.context.moveTo(this.arrowStartPosition.x, this.arrowStartPosition.y);
       this.context.lineTo(currentX, currentY);
       this.context.stroke();
+
+      // Draw arrowhead
+      const headlen = 18; // length of head in pixels
+      const dx = currentX - this.arrowStartPosition.x;
+      const dy = currentY - this.arrowStartPosition.y;
+      const angle = Math.atan2(dy, dx);
+      for (const offset of [Math.PI / 7, -Math.PI / 7]) {
+        this.context.beginPath();
+        this.context.moveTo(currentX, currentY);
+        this.context.lineTo(
+          currentX - headlen * Math.cos(angle + offset),
+          currentY - headlen * Math.sin(angle + offset)
+        );
+        this.context.stroke();
+      }
     }
   }
 
