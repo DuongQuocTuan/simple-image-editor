@@ -282,6 +282,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.history = this.history.slice(0, this.historyIndex + 1);
     }
 
+    console.log('saveToHistory - before normalization:', this.elements);
     // Normalize square dimensions to always be positive
     const normalizedElements = this.elements.map((el) => {
       if (el.type === 'square') {
@@ -293,6 +294,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       }
       return { ...el };
     });
+    console.log('saveToHistory - after normalization:', normalizedElements);
 
     // Push the new state (copy of normalized elements array)
     const newState = normalizedElements.map((el) => ({ ...el }));
@@ -445,11 +447,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   @HostListener('mousedown', ['$event'])
   onMouseDown(event: MouseEvent): void {
-    console.log(
-      '🚀 ~ SimpleImageEditorComponent ~ mousedown ~ this.isColorPickerOpen:',
-      this.isColorPickerOpen
-    );
-
     if (this.isColorPickerOpen) return;
 
     const canvas = this.canvasRef.nativeElement;
@@ -475,11 +472,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   @HostListener('mousemove', ['$event'])
   onMouseMove(event: MouseEvent): void {
-    console.log(
-      '🚀 ~ SimpleImageEditorComponent ~ onMouseMove ~ this.isColorPickerOpen:',
-      this.isColorPickerOpen
-    );
-
     if (this.isColorPickerOpen) return;
 
     const canvas = this.canvasRef.nativeElement;
@@ -515,10 +507,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   @HostListener('mouseup', ['$event'])
   onMouseUp(event: MouseEvent): void {
-    console.log(
-      '🚀 ~ SimpleImageEditorComponent ~ onMouseUp ~ this.isColorPickerOpen:',
-      this.isColorPickerOpen
-    );
     if (this.isColorPickerOpen) return;
 
     const canvas = this.canvasRef.nativeElement;
@@ -535,15 +523,22 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
       const width = endX - this.squareStartPosition.x;
       const height = endY - this.squareStartPosition.y;
-
+      let x = this.squareStartPosition.x;
+      let y = this.squareStartPosition.y;
+      if (width < 0) {
+        x = x + width;
+      }
+      if (height < 0) {
+        y = y + height;
+      }
       if (Math.abs(width) > 5 && Math.abs(height) > 5) {
         // Minimum size threshold
         this.elements.push({
           type: 'square',
-          x: this.squareStartPosition.x,
-          y: this.squareStartPosition.y,
-          width,
-          height,
+          x: x,
+          y: y,
+          width: Math.abs(width),
+          height: Math.abs(height),
           color: this.selectedColor,
         });
         this.saveToHistory();
