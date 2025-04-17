@@ -42,33 +42,31 @@
         class="mr-2"
         icon="pi pi-check"
         [severity]="
-          activeButton === buttonTypeConst.CHECK ? 'success' : 'secondary'
+          currentMode === drawModeConst.CHECK ? 'success' : 'secondary'
         "
-        [raised]="activeButton === buttonTypeConst.CHECK"
-        [plain]="
-          activeButton !== null && activeButton !== buttonTypeConst.CHECK
-        "
+        [raised]="currentMode === drawModeConst.CHECK"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.CHECK"
         (click)="selectText(textSymbolConst.CHECK, textColorConst.CHECK)"
       />
       <p-button
         class="mr-2"
         icon="pi pi-times"
-        [severity]="activeButton === buttonTypeConst.X ? 'danger' : 'secondary'"
-        [raised]="activeButton === buttonTypeConst.X"
-        [plain]="activeButton !== null && activeButton !== buttonTypeConst.X"
+        [severity]="currentMode === drawModeConst.X ? 'danger' : 'secondary'"
+        [raised]="currentMode === drawModeConst.X"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.X"
         (click)="selectText(textSymbolConst.X, textColorConst.X)"
       />
       <p-button
         class="mr-8"
         icon="pi pi-pencil"
         [severity]="
-          activeButton === buttonTypeConst.FREE_TEXT ? 'info' : 'secondary'
+          currentMode === drawModeConst.FREE_TEXT ? 'info' : 'secondary'
         "
-        [raised]="activeButton === buttonTypeConst.FREE_TEXT"
+        [raised]="currentMode === drawModeConst.FREE_TEXT"
         [plain]="
-          activeButton !== null && activeButton !== buttonTypeConst.FREE_TEXT
+          currentMode !== null && currentMode !== drawModeConst.FREE_TEXT
         "
-        (click)="enableCustomTextMode()"
+        (click)="enableCustomTextMode(textColorConst.FREE_TEXT)"
       />
 
       <p-button
@@ -76,13 +74,9 @@
         icon="pi pi-stop"
         pTooltip="Draw Rectangle (Hold Shift for Square)"
         tooltipPosition="bottom"
-        [severity]="
-          activeButton === buttonTypeConst.SQUARE ? 'warn' : 'secondary'
-        "
-        [raised]="activeButton === buttonTypeConst.SQUARE"
-        [plain]="
-          activeButton !== null && activeButton !== buttonTypeConst.SQUARE
-        "
+        [severity]="currentMode === drawModeConst.SQUARE ? 'warn' : 'secondary'"
+        [raised]="currentMode === drawModeConst.SQUARE"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.SQUARE"
         (click)="enableSquareMode(textColorConst.SQUARE)"
       />
       <p-button
@@ -91,12 +85,10 @@
         pTooltip="Draw Ellipse (Hold Shift for Circle)"
         tooltipPosition="bottom"
         [severity]="
-          activeButton === buttonTypeConst.ELLIPSE ? 'warn' : 'secondary'
+          currentMode === drawModeConst.ELLIPSE ? 'warn' : 'secondary'
         "
-        [raised]="activeButton === buttonTypeConst.ELLIPSE"
-        [plain]="
-          activeButton !== null && activeButton !== buttonTypeConst.ELLIPSE
-        "
+        [raised]="currentMode === drawModeConst.ELLIPSE"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.ELLIPSE"
         (click)="enableEllipseMode(textColorConst.ELLIPSE)"
       />
 
@@ -105,11 +97,9 @@
         icon="pi pi-minus"
         pTooltip="Draw Line (Hold Shift for Straight/Diagonal)"
         tooltipPosition="bottom"
-        [severity]="
-          activeButton === buttonTypeConst.LINE ? 'help' : 'secondary'
-        "
-        [raised]="activeButton === buttonTypeConst.LINE"
-        [plain]="activeButton !== null && activeButton !== buttonTypeConst.LINE"
+        [severity]="currentMode === drawModeConst.LINE ? 'help' : 'secondary'"
+        [raised]="currentMode === drawModeConst.LINE"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.LINE"
         (click)="enableLineMode(textColorConst.LINE)"
       />
       <p-button
@@ -117,14 +107,10 @@
         icon="pi pi-arrow-right"
         pTooltip="Draw Arrow (Hold Shift for Straight/Diagonal)"
         tooltipPosition="bottom"
-        [severity]="
-          activeButton === buttonTypeConst.ARROW ? 'help' : 'secondary'
-        "
-        [raised]="activeButton === buttonTypeConst.ARROW"
-        [plain]="
-          activeButton !== null && activeButton !== buttonTypeConst.ARROW
-        "
-        (click)="enableArrowMode(textColorConst.LINE)"
+        [severity]="currentMode === drawModeConst.ARROW ? 'help' : 'secondary'"
+        [raised]="currentMode === drawModeConst.ARROW"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.ARROW"
+        (click)="enableArrowMode(textColorConst.ARROW)"
       />
 
       <p-button
@@ -145,12 +131,10 @@
         pTooltip="Click at the start of text to delete it - especially important for long text elements"
         tooltipPosition="right"
         [severity]="
-          activeButton === buttonTypeConst.DELETE ? 'primary' : 'secondary'
+          currentMode === drawModeConst.DELETE ? 'primary' : 'secondary'
         "
-        [raised]="activeButton === buttonTypeConst.DELETE"
-        [plain]="
-          activeButton !== null && activeButton !== buttonTypeConst.DELETE
-        "
+        [raised]="currentMode === drawModeConst.DELETE"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.DELETE"
         (click)="toggleDeleteMode()"
       />
     </div>

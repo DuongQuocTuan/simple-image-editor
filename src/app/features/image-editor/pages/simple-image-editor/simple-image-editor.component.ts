@@ -8,7 +8,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { BUTTON_TYPE } from '@features/image-editor/constants/button-type.constant';
+import { DRAW_MODE } from '@features/image-editor/constants/button-type.constant';
 import { FONT_SETTING } from '@features/image-editor/constants/font-setting.constant';
 import { TEXT_COLOR } from '@features/image-editor/constants/text-color.constant';
 import { TEXT_SYMBOL } from '@features/image-editor/constants/text-symbol.constant';
@@ -16,7 +16,10 @@ import {
   Position,
   SelectedText,
 } from '@features/image-editor/models/editor-state.model';
-import { ElementType } from '@features/image-editor/models/element.model';
+import {
+  ElementType,
+  SquareElement,
+} from '@features/image-editor/models/element.model';
 import { SaveCancelComponent } from '@shared/components/save-cancel/save-cancel.component';
 import { AutoFocusModule } from 'primeng/autofocus';
 import { ButtonModule } from 'primeng/button';
@@ -61,21 +64,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   readonly textColorConst = TEXT_COLOR;
   readonly textSymbolConst = TEXT_SYMBOL;
   readonly fontSettingConst = FONT_SETTING;
-  readonly buttonTypeConst = {
-    ...BUTTON_TYPE,
-    SQUARE: 'SQUARE',
-    ELLIPSE: 'ELLIPSE',
-    ARROW: 'ARROW',
-  };
-
-  private currentMode:
-    | 'arrow'
-    | 'line'
-    | 'square'
-    | 'ellipse'
-    | 'customText'
-    | 'delete'
-    | null = null;
+  readonly drawModeConst = DRAW_MODE;
   private arrowStartPosition: { x: number; y: number } | null = null;
   private squareStartPosition: { x: number; y: number } | null = null;
   private ellipseStartPosition: { x: number; y: number } | null = null;
@@ -86,12 +75,16 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   private wasLineModeBeforeColorPicker = false;
   private wasArrowModeBeforeColorPicker = false;
 
+  currentMode: string | null = null;
   originalFilename = '';
   selectedColor: string = TEXT_COLOR.DEFAULT;
   fontSize = FONT_SETTING.FONT_SIZE;
   showTextDialog = false;
   customTextInput = '';
-  activeButton: (typeof BUTTON_TYPE)[keyof typeof BUTTON_TYPE] | null = null;
+
+  ngAfterViewInit(): void {
+    this.context = this.canvasRef.nativeElement.getContext('2d');
+  }
 
   updateFontSize(): void {
     if (this.selectedText) {
@@ -99,10 +92,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       // Font size change doesn't need history update, just redraw
       // this.redrawCanvas(); // Redraw might not be needed if no text is selected or placed
     }
-  }
-
-  ngAfterViewInit(): void {
-    this.context = this.canvasRef.nativeElement.getContext('2d');
   }
 
   onFileSelected(event: FileUploadHandlerEvent): void {
@@ -127,9 +116,8 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   selectText(symbol: string, color: string): void {
     this.selectedColor = color;
     this.selectedText = { symbol, color, size: this.fontSize };
-    this.currentMode = null;
-    this.activeButton =
-      symbol === this.textSymbolConst.CHECK ? BUTTON_TYPE.CHECK : BUTTON_TYPE.X;
+    this.currentMode =
+      symbol === this.textSymbolConst.CHECK ? DRAW_MODE.CHECK : DRAW_MODE.X;
   }
 
   exportImage(): void {
@@ -146,7 +134,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   }
 
   onCanvasClick(event: MouseEvent): void {
-    if (this.currentMode === 'customText') {
+    if (this.currentMode === DRAW_MODE.FREE_TEXT) {
       const canvas = this.canvasRef.nativeElement;
       const rect = canvas.getBoundingClientRect();
       this.clickPosition = {
@@ -154,7 +142,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         y: event.clientY - rect.top,
       };
       this.showTextDialog = true;
-    } else if (this.currentMode === 'delete') {
+    } else if (this.currentMode === DRAW_MODE.DELETE) {
       // Use findNearestElement
       const clickedItem = this.findNearestElement(event);
       if (clickedItem) {
@@ -216,24 +204,25 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   onColorPickerOpen(): void {
     this.isColorPickerOpen = true;
-    this.wasSquareModeBeforeColorPicker = this.currentMode === 'square';
-    this.wasEllipseModeBeforeColorPicker = this.currentMode === 'ellipse';
-    this.wasLineModeBeforeColorPicker = this.currentMode === 'line';
-    this.wasArrowModeBeforeColorPicker = this.currentMode === 'arrow';
+    this.wasSquareModeBeforeColorPicker = this.currentMode === DRAW_MODE.SQUARE;
+    this.wasEllipseModeBeforeColorPicker =
+      this.currentMode === DRAW_MODE.ELLIPSE;
+    this.wasLineModeBeforeColorPicker = this.currentMode === DRAW_MODE.LINE;
+    this.wasArrowModeBeforeColorPicker = this.currentMode === DRAW_MODE.ARROW;
 
-    if (this.currentMode === 'square') {
+    if (this.currentMode === DRAW_MODE.SQUARE) {
       this.currentMode = null;
       this.squareStartPosition = null;
     }
-    if (this.currentMode === 'ellipse') {
+    if (this.currentMode === DRAW_MODE.ELLIPSE) {
       this.currentMode = null;
       this.ellipseStartPosition = null;
     }
-    if (this.currentMode === 'line') {
+    if (this.currentMode === DRAW_MODE.LINE) {
       this.currentMode = null;
       this.lineStartPosition = null;
     }
-    if (this.currentMode === 'arrow') {
+    if (this.currentMode === DRAW_MODE.ARROW) {
       this.currentMode = null;
       this.arrowStartPosition = null;
     }
@@ -260,23 +249,32 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   enableArrowMode(color: string): void {
     this.selectedColor = color;
-    this.currentMode = 'arrow';
+    this.currentMode = DRAW_MODE.ARROW;
     this.selectedText = null;
-    this.activeButton = this.buttonTypeConst.ARROW;
   }
 
   enableLineMode(color: string): void {
     this.selectedColor = color;
-    this.currentMode = 'line';
+    this.currentMode = DRAW_MODE.LINE;
     this.selectedText = null;
-    this.activeButton = this.buttonTypeConst.LINE;
   }
 
-  enableCustomTextMode(): void {
-    this.currentMode = 'customText';
+  enableCustomTextMode(color: string): void {
+    this.currentMode = DRAW_MODE.FREE_TEXT;
     this.selectedText = null;
-    this.activeButton = BUTTON_TYPE.FREE_TEXT;
-    this.selectedColor = TEXT_COLOR.FREE_TEXT;
+    this.selectedColor = color;
+  }
+
+  enableSquareMode(color: string): void {
+    this.selectedColor = color;
+    this.currentMode = DRAW_MODE.SQUARE;
+    this.selectedText = null;
+  }
+
+  enableEllipseMode(color: string): void {
+    this.selectedColor = color;
+    this.currentMode = DRAW_MODE.ELLIPSE;
+    this.selectedText = null;
   }
 
   confirmTextInput(): void {
@@ -311,28 +309,12 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   }
 
   toggleDeleteMode(): void {
-    if (this.currentMode === 'delete') {
+    if (this.currentMode === DRAW_MODE.DELETE) {
       this.currentMode = null;
-      this.activeButton = null;
     } else {
-      this.currentMode = 'delete';
-      this.activeButton = this.buttonTypeConst.DELETE;
+      this.currentMode = DRAW_MODE.DELETE;
     }
     this.selectedText = null;
-  }
-
-  enableSquareMode(color: string): void {
-    this.selectedColor = color;
-    this.currentMode = 'square';
-    this.selectedText = null;
-    this.activeButton = this.buttonTypeConst.SQUARE;
-  }
-
-  enableEllipseMode(color: string): void {
-    this.selectedColor = color;
-    this.currentMode = 'ellipse';
-    this.selectedText = null;
-    this.activeButton = this.buttonTypeConst.ELLIPSE;
   }
 
   private disableWasModeFlags(): void {
@@ -369,11 +351,11 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
     // Normalize square dimensions to always be positive
     const normalizedElements = this.elements.map((el) => {
-      if (el.type === 'square') {
+      if (el.type === DRAW_MODE.SQUARE) {
         return {
           ...el,
-          width: Math.abs(el.width),
-          height: Math.abs(el.height),
+          width: Math.abs((el as SquareElement).width),
+          height: Math.abs((el as SquareElement).height),
         };
       }
       return { ...el };
@@ -424,16 +406,16 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         case 'text':
           this.drawText(element);
           break;
-        case 'square':
+        case DRAW_MODE.SQUARE:
           this.drawSquare(element);
           break;
-        case 'ellipse':
+        case DRAW_MODE.ELLIPSE:
           this.drawEllipse(element);
           break;
-        case 'line':
+        case DRAW_MODE.LINE:
           this.drawLine(element);
           break;
-        case 'arrow':
+        case DRAW_MODE.ARROW:
           this.drawArrow(element);
           break;
         default:
@@ -520,7 +502,18 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     this.showTextDialog = false;
   }
 
-  // Renamed and updated function
+  @HostListener('document:keydown.control.z', ['$event'])
+  onUndoKey(event: KeyboardEvent): void {
+    event.preventDefault();
+    this.undo();
+  }
+
+  @HostListener('document:keydown.control.y', ['$event'])
+  onRedoKey(event: KeyboardEvent): void {
+    event.preventDefault();
+    this.redo();
+  }
+
   private findNearestElement(event: MouseEvent): ElementType | null {
     if (!this.context || !this.image) return null;
 
@@ -544,28 +537,28 @@ export class SimpleImageEditorComponent implements AfterViewInit {
             clickY
           ));
           break;
-        case 'square':
+        case DRAW_MODE.SQUARE:
           ({ distance, isClose } = this.distanceToSquare(
             element,
             clickX,
             clickY
           ));
           break;
-        case 'ellipse':
+        case DRAW_MODE.ELLIPSE:
           ({ distance, isClose } = this.distanceToEllipse(
             element,
             clickX,
             clickY
           ));
           break;
-        case 'line':
+        case DRAW_MODE.LINE:
           ({ distance, isClose } = this.distanceToLine(
             element,
             clickX,
             clickY
           ));
           break;
-        case 'arrow':
+        case DRAW_MODE.ARROW:
           ({ distance, isClose } = this.distanceToArrow(
             element,
             clickX,
@@ -704,18 +697,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     return { distance, isClose: distance < this.deletionThreshold };
   }
 
-  @HostListener('document:keydown.control.z', ['$event'])
-  onUndoKey(event: KeyboardEvent): void {
-    event.preventDefault();
-    this.undo();
-  }
-
-  @HostListener('document:keydown.control.y', ['$event'])
-  onRedoKey(event: KeyboardEvent): void {
-    event.preventDefault();
-    this.redo();
-  }
-
   @HostListener('mousedown', ['$event'])
   onMouseDown(event: MouseEvent): void {
     if (this.isColorPickerOpen) return;
@@ -729,16 +710,16 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       event.clientY <= rect.bottom;
 
     switch (this.currentMode) {
-      case 'square':
+      case DRAW_MODE.SQUARE:
         this.handleSquareMouseDown(event, rect, isInCanvas);
         break;
-      case 'ellipse':
+      case DRAW_MODE.ELLIPSE:
         this.handleEllipseMouseDown(event, rect, isInCanvas);
         break;
-      case 'line':
+      case DRAW_MODE.LINE:
         this.handleLineMouseDown(event, rect, isInCanvas);
         break;
-      case 'arrow':
+      case DRAW_MODE.ARROW:
         this.handleArrowMouseDown(event, rect, isInCanvas);
         break;
       default:
@@ -811,16 +792,16 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       event.clientY <= rect.bottom;
 
     switch (this.currentMode) {
-      case 'square':
+      case DRAW_MODE.SQUARE:
         this.handleSquareMouseMove(event, rect, isInCanvas);
         break;
-      case 'ellipse':
+      case DRAW_MODE.ELLIPSE:
         this.handleEllipseMouseMove(event, rect, isInCanvas);
         break;
-      case 'line':
+      case DRAW_MODE.LINE:
         this.handleLineMouseMove(event, rect, isInCanvas);
         break;
-      case 'arrow':
+      case DRAW_MODE.ARROW:
         this.handleArrowMouseMove(event, rect, isInCanvas);
         break;
       default:
@@ -1011,16 +992,16 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       event.clientY <= rect.bottom;
 
     switch (this.currentMode) {
-      case 'square':
+      case DRAW_MODE.SQUARE:
         this.handleSquareMouseUp(event, rect, isInCanvas);
         break;
-      case 'ellipse':
+      case DRAW_MODE.ELLIPSE:
         this.handleEllipseMouseUp(event, rect, isInCanvas);
         break;
-      case 'line':
+      case DRAW_MODE.LINE:
         this.handleLineMouseUp(event, rect, isInCanvas);
         break;
-      case 'arrow':
+      case DRAW_MODE.ARROW:
         this.handleArrowMouseUp(event, rect, isInCanvas);
         break;
       default:
@@ -1057,7 +1038,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       if (Math.abs(finalWidth) > 5 && Math.abs(finalHeight) > 5) {
         // Minimum size threshold
         this.elements.push({
-          type: 'square',
+          type: DRAW_MODE.SQUARE,
           x: x,
           y: y,
           width: Math.abs(finalWidth),
@@ -1092,7 +1073,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       }
       if (radiusX > 5 && radiusY > 5) {
         this.elements.push({
-          type: 'ellipse',
+          type: DRAW_MODE.ELLIPSE,
           x: centerX,
           y: centerY,
           radiusX: radiusX,
@@ -1133,7 +1114,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         Math.abs(endY - this.lineStartPosition.y) > 5
       ) {
         this.elements.push({
-          type: 'line',
+          type: DRAW_MODE.LINE,
           startX: this.lineStartPosition.x,
           startY: this.lineStartPosition.y,
           endX: endX,
@@ -1173,7 +1154,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         Math.abs(endY - this.arrowStartPosition.y) > 5
       ) {
         this.elements.push({
-          type: 'arrow',
+          type: DRAW_MODE.ARROW,
           startX: this.arrowStartPosition.x,
           startY: this.arrowStartPosition.y,
           endX: endX,

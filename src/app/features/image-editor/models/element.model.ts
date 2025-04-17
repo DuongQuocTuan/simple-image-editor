@@ -1,47 +1,37 @@
-export interface TextElement {
-  type: 'text';
-  text: string;
+interface BaseElement {
+  type: string;
   color: string;
+}
+
+export interface TextElement extends BaseElement {
+  text: string;
   x: number;
   y: number;
   size: number;
 }
 
-export interface SquareElement {
-  type: 'square';
+export interface SquareElement extends BaseElement {
   x: number;
   y: number;
   width: number;
   height: number;
-  color: string;
 }
 
-export interface EllipseElement {
-  type: 'ellipse';
+export interface EllipseElement extends BaseElement {
   x: number;
   y: number;
   radiusX: number;
   radiusY: number;
-  color: string;
 }
 
-export interface LineElement {
-  type: 'line';
+export interface LineElement extends BaseElement {
   startX: number;
   startY: number;
   endX: number;
   endY: number;
-  color: string;
 }
 
-export interface ArrowElement {
-  type: 'arrow';
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-  color: string;
-}
+export interface ArrowElement extends LineElement {}
 
 export type ElementType =
   | TextElement

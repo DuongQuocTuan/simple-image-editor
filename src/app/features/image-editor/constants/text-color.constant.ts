@@ -4,6 +4,7 @@ export const TEXT_COLOR = {
   SQUARE: '#ff0000',
   ELLIPSE: '#ff0000',
   LINE: '#ff0000',
+  ARROW: '#ff0000',
   FREE_TEXT: '#ff0000',
   DEFAULT: '#000',
 };
