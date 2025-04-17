@@ -284,7 +284,10 @@
   </div>
 
   <div class="editor-wrapper">
-    <div class="canvas-container">
+    <div
+      class="canvas-container"
+      [ngClass]="{ 'justify-items-center': !isMobile }"
+    >
       <canvas #canvas (click)="onCanvasClick($event)"></canvas>
     </div>
   </div>
