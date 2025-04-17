@@ -1183,6 +1183,12 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   onTouchStart(event: TouchEvent): void {
     if (this.isColorPickerOpen) return;
     if (!event.touches.length) return;
+
+    // If two or more fingers, allow scroll (do not preventDefault)
+    if (event.touches.length > 1) {
+      return;
+    }
+
     const touch = event.touches[0];
     if (!this.isTouchInCanvas(touch)) return;
     this.lastTouch = touch;
@@ -1215,6 +1221,12 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   onTouchMove(event: TouchEvent): void {
     if (this.isColorPickerOpen) return;
     if (!event.touches.length) return;
+
+    // If two or more fingers, allow scroll (do not preventDefault)
+    if (event.touches.length > 1) {
+      return;
+    }
+
     const touch = event.touches[0];
     if (!this.isTouchInCanvas(touch)) return;
     this.lastTouch = touch;
@@ -1232,6 +1244,13 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   @HostListener('touchend', ['$event'])
   onTouchEnd(event: TouchEvent): void {
     if (this.isColorPickerOpen) return;
+
+    // If two or more fingers, allow scroll (do not preventDefault)
+    if (event.touches.length > 1 || event.changedTouches.length > 1) {
+      this.lastTouch = null;
+      return;
+    }
+
     // Use lastTouch if available, otherwise fallback to changedTouches[0]
     const touch =
       this.lastTouch ||

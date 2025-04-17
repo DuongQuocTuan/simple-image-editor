@@ -1,7 +1,7 @@
 .image-editor-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.5rem;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
   width: 100%;
@@ -36,6 +36,16 @@
       width: 100%;
     }
   }
+
+  .mobile-canvas-note {
+    text-align: center;
+    color: #888;
+    font-size: 0.75em;
+    margin-bottom: 0.5em;
+    padding: 0.25em 0.5em;
+    background: #f3f3f3;
+    border-radius: 6px;
+  }
 }
 
 .editor-wrapper {
@@ -50,4 +60,5 @@
   background-color: #f8f9fa;
   border: 1px dashed #ddd;
   overflow: auto;
+  touch-action: pan-x pan-y;
 }

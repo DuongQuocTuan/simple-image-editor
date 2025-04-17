@@ -216,6 +216,7 @@
     <div class="grid grid-cols-5 grid-rows-2 gap-2 items-center">
       <!-- Row 1 -->
       <p-button
+        class="text-center"
         icon="pi pi-check"
         [severity]="
           currentMode === drawModeConst.CHECK ? 'success' : 'secondary'
@@ -225,6 +226,7 @@
         (click)="selectText(textSymbolConst.CHECK, textColorConst.CHECK)"
       />
       <p-button
+        class="text-center"
         icon="pi pi-times"
         [severity]="currentMode === drawModeConst.X ? 'danger' : 'secondary'"
         [raised]="currentMode === drawModeConst.X"
@@ -232,6 +234,7 @@
         (click)="selectText(textSymbolConst.X, textColorConst.X)"
       />
       <p-button
+        class="text-center"
         icon="pi pi-pencil"
         [severity]="
           currentMode === drawModeConst.FREE_TEXT ? 'info' : 'secondary'
@@ -243,6 +246,7 @@
         (click)="enableCustomTextMode(textColorConst.FREE_TEXT)"
       />
       <p-button
+        class="text-center"
         icon="pi pi-stop"
         pTooltip="Draw Rectangle (Hold Shift for Square)"
         tooltipPosition="bottom"
@@ -252,6 +256,7 @@
         (click)="enableSquareMode(textColorConst.SQUARE)"
       />
       <p-button
+        class="text-center"
         icon="pi pi-circle"
         pTooltip="Draw Ellipse (Hold Shift for Circle)"
         tooltipPosition="bottom"
@@ -264,6 +269,7 @@
       />
       <!-- Row 2 -->
       <p-button
+        class="text-center"
         icon="pi pi-minus"
         pTooltip="Draw Line (Hold Shift for Straight/Diagonal)"
         tooltipPosition="bottom"
@@ -273,6 +279,7 @@
         (click)="enableLineMode(textColorConst.LINE)"
       />
       <p-button
+        class="text-center"
         icon="pi pi-arrow-right"
         pTooltip="Draw Arrow (Hold Shift for Straight/Diagonal)"
         tooltipPosition="bottom"
@@ -282,16 +289,19 @@
         (click)="enableArrowMode(textColorConst.ARROW)"
       />
       <p-button
+        class="text-center"
         icon="pi pi-chevron-left"
         [outlined]="true"
         (click)="undo(); $event.stopPropagation()"
       />
       <p-button
+        class="text-center"
         icon="pi pi-chevron-right"
         [outlined]="true"
         (click)="redo(); $event.stopPropagation()"
       />
       <p-button
+        class="text-center"
         icon="pi pi-trash"
         pTooltip="Click at the start of text to delete it - especially important for long text elements"
         tooltipPosition="right"
@@ -304,6 +314,12 @@
       />
     </div>
   </div>
+
+  <ng-container *ngIf="isMobile">
+    <div class="mobile-canvas-note mt-2">
+      Tip: Use one finger to draw, two fingers to scroll/pan the image.
+    </div>
+  </ng-container>
 
   <div class="editor-wrapper">
     <div
