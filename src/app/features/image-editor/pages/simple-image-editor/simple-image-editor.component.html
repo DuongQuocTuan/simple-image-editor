@@ -1,6 +1,7 @@
 <div class="custom-card image-editor-container">
-  <div class="grid grid-cols-12 mt-6">
-    <div class="flex text-left col-span-3">
+  <!-- Desktop Toolbar -->
+  <div *ngIf="!isMobile" class="grid grid-cols-1 sm:grid-cols-12 mt-6">
+    <div class="flex text-left col-span-1 sm:col-span-3">
       <p-fileUpload
         mode="basic"
         name="imageUpload"
@@ -20,16 +21,26 @@
         {{ getDisplayFilename() }}
       </span>
     </div>
-    <div class="text-center col-span-6">
+    <div class="text-center col-span-1 sm:col-span-6">
       <p-inputnumber
         class="font-size-input mr-2"
-        [suffix]="fontSettingConst.FONT_UNIT"
+        buttonLayout="horizontal"
+        spinnerMode="horizontal"
         [(ngModel)]="fontSize"
         (ngModelChange)="updateFontSize()"
         [showButtons]="true"
-        [min]="0"
+        [min]="4"
         [max]="100"
-      />
+        [step]="4"
+        [suffix]="fontSettingConst.FONT_UNIT"
+      >
+        <ng-template #incrementbuttonicon>
+          <span class="pi pi-plus"></span>
+        </ng-template>
+        <ng-template #decrementbuttonicon>
+          <span class="pi pi-minus"></span>
+        </ng-template>
+      </p-inputnumber>
       <p-colorPicker
         class="color-picker mr-8"
         [(ngModel)]="selectedColor"
@@ -138,13 +149,136 @@
         (click)="toggleDeleteMode()"
       />
     </div>
-    <div class="text-right col-span-3">
+    <div class="text-right col-span-1 sm:col-span-3">
       <p-button
         label="Export Image"
         icon="pi pi-download"
         severity="help"
         [raised]="true"
         (click)="exportImage()"
+      />
+    </div>
+  </div>
+
+  <!-- Mobile Toolbar -->
+  <div *ngIf="isMobile" class="mobile-toolbar space-y-2 mt-6">
+    <div class="grid grid-cols-2 gap-2">
+      <p-fileUpload
+        mode="basic"
+        name="imageUpload"
+        accept="image/*"
+        [maxFileSize]="5000000"
+        [auto]="true"
+        [customUpload]="true"
+        (uploadHandler)="onFileSelected($event)"
+        chooseLabel="Upload Image"
+        class="file-input w-full"
+      >
+      </p-fileUpload>
+      <p-button
+        styleClass="w-full mobile-export-button"
+        label="Export"
+        icon="pi pi-download"
+        severity="help"
+        [raised]="true"
+        (click)="exportImage()"
+      />
+    </div>
+    <div class="text-center">
+      <p-inputnumber
+        class="font-size-input mr-2"
+        buttonLayout="horizontal"
+        spinnerMode="horizontal"
+        [(ngModel)]="fontSize"
+        (ngModelChange)="updateFontSize()"
+        [showButtons]="true"
+        [min]="4"
+        [max]="100"
+        [step]="4"
+        [suffix]="fontSettingConst.FONT_UNIT"
+      >
+        <ng-template #incrementbuttonicon>
+          <span class="pi pi-plus"></span>
+        </ng-template>
+        <ng-template #decrementbuttonicon>
+          <span class="pi pi-minus"></span>
+        </ng-template>
+      </p-inputnumber>
+      <p-colorPicker
+        class="color-picker"
+        [(ngModel)]="selectedColor"
+        (onChange)="updateColor(selectedColor)"
+        (onShow)="onColorPickerOpen()"
+        (onHide)="onColorPickerClose()"
+      />
+    </div>
+
+    <div class="grid grid-cols-8 gap-2 items-center">
+      <p-button
+        icon="pi pi-check"
+        [severity]="
+          currentMode === drawModeConst.CHECK ? 'success' : 'secondary'
+        "
+        [raised]="currentMode === drawModeConst.CHECK"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.CHECK"
+        (click)="selectText(textSymbolConst.CHECK, textColorConst.CHECK)"
+      />
+      <p-button
+        icon="pi pi-times"
+        [severity]="currentMode === drawModeConst.X ? 'danger' : 'secondary'"
+        [raised]="currentMode === drawModeConst.X"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.X"
+        (click)="selectText(textSymbolConst.X, textColorConst.X)"
+      />
+      <p-button
+        icon="pi pi-pencil"
+        [severity]="
+          currentMode === drawModeConst.FREE_TEXT ? 'info' : 'secondary'
+        "
+        [raised]="currentMode === drawModeConst.FREE_TEXT"
+        [plain]="
+          currentMode !== null && currentMode !== drawModeConst.FREE_TEXT
+        "
+        (click)="enableCustomTextMode(textColorConst.FREE_TEXT)"
+      />
+      <p-button
+        icon="pi pi-minus"
+        pTooltip="Draw Line (Hold Shift for Straight/Diagonal)"
+        tooltipPosition="bottom"
+        [severity]="currentMode === drawModeConst.LINE ? 'help' : 'secondary'"
+        [raised]="currentMode === drawModeConst.LINE"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.LINE"
+        (click)="enableLineMode(textColorConst.LINE)"
+      />
+      <p-button
+        icon="pi pi-arrow-right"
+        pTooltip="Draw Arrow (Hold Shift for Straight/Diagonal)"
+        tooltipPosition="bottom"
+        [severity]="currentMode === drawModeConst.ARROW ? 'help' : 'secondary'"
+        [raised]="currentMode === drawModeConst.ARROW"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.ARROW"
+        (click)="enableArrowMode(textColorConst.ARROW)"
+      />
+      <p-button
+        icon="pi pi-chevron-left"
+        [outlined]="true"
+        (click)="undo(); $event.stopPropagation()"
+      />
+      <p-button
+        icon="pi pi-chevron-right"
+        [outlined]="true"
+        (click)="redo(); $event.stopPropagation()"
+      />
+      <p-button
+        icon="pi pi-trash"
+        pTooltip="Click at the start of text to delete it - especially important for long text elements"
+        tooltipPosition="right"
+        [severity]="
+          currentMode === drawModeConst.DELETE ? 'primary' : 'secondary'
+        "
+        [raised]="currentMode === drawModeConst.DELETE"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.DELETE"
+        (click)="toggleDeleteMode()"
       />
     </div>
   </div>

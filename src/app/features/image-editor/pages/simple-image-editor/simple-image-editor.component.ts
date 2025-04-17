@@ -1,3 +1,4 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
@@ -53,6 +54,7 @@ import { TooltipModule } from 'primeng/tooltip';
 })
 export class SimpleImageEditorComponent implements AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  public isMobile = false;
   private readonly deletionThreshold = 100; // Pixels
   private context: CanvasRenderingContext2D | null = null;
   private image: HTMLImageElement | null = null;
@@ -81,6 +83,14 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   fontSize = FONT_SETTING.FONT_SIZE;
   showTextDialog = false;
   customTextInput = '';
+
+  constructor(private breakpointObserver: BreakpointObserver) {
+    this.breakpointObserver
+      .observe([Breakpoints.Handset])
+      .subscribe((result) => {
+        this.isMobile = result.matches;
+      });
+  }
 
   ngAfterViewInit(): void {
     this.context = this.canvasRef.nativeElement.getContext('2d');
