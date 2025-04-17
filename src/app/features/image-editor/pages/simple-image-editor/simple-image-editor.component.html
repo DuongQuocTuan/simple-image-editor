@@ -213,7 +213,8 @@
       />
     </div>
 
-    <div class="grid grid-cols-8 gap-2 items-center">
+    <div class="grid grid-cols-5 grid-rows-2 gap-2 items-center">
+      <!-- Row 1 -->
       <p-button
         icon="pi pi-check"
         [severity]="
@@ -241,6 +242,27 @@
         "
         (click)="enableCustomTextMode(textColorConst.FREE_TEXT)"
       />
+      <p-button
+        icon="pi pi-stop"
+        pTooltip="Draw Rectangle (Hold Shift for Square)"
+        tooltipPosition="bottom"
+        [severity]="currentMode === drawModeConst.SQUARE ? 'warn' : 'secondary'"
+        [raised]="currentMode === drawModeConst.SQUARE"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.SQUARE"
+        (click)="enableSquareMode(textColorConst.SQUARE)"
+      />
+      <p-button
+        icon="pi pi-circle"
+        pTooltip="Draw Ellipse (Hold Shift for Circle)"
+        tooltipPosition="bottom"
+        [severity]="
+          currentMode === drawModeConst.ELLIPSE ? 'warn' : 'secondary'
+        "
+        [raised]="currentMode === drawModeConst.ELLIPSE"
+        [plain]="currentMode !== null && currentMode !== drawModeConst.ELLIPSE"
+        (click)="enableEllipseMode(textColorConst.ELLIPSE)"
+      />
+      <!-- Row 2 -->
       <p-button
         icon="pi pi-minus"
         pTooltip="Draw Line (Hold Shift for Straight/Diagonal)"
