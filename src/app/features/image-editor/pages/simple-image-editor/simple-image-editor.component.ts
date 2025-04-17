@@ -54,8 +54,12 @@ import { TooltipModule } from 'primeng/tooltip';
 })
 export class SimpleImageEditorComponent implements AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
-  public isMobile = false;
+  private lastTouch: Touch | null = null; // Touch event handlers for mobile
   private readonly deletionThreshold = 100; // Pixels
+  readonly textColorConst = TEXT_COLOR;
+  readonly textSymbolConst = TEXT_SYMBOL;
+  readonly fontSettingConst = FONT_SETTING;
+  readonly drawModeConst = DRAW_MODE;
   private context: CanvasRenderingContext2D | null = null;
   private image: HTMLImageElement | null = null;
   private selectedText: SelectedText | null = null;
@@ -63,10 +67,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   private elements: ElementType[] = [];
   private history: ElementType[][] = [[]];
   private historyIndex: number = 0;
-  readonly textColorConst = TEXT_COLOR;
-  readonly textSymbolConst = TEXT_SYMBOL;
-  readonly fontSettingConst = FONT_SETTING;
-  readonly drawModeConst = DRAW_MODE;
   private arrowStartPosition: { x: number; y: number } | null = null;
   private squareStartPosition: { x: number; y: number } | null = null;
   private ellipseStartPosition: { x: number; y: number } | null = null;
@@ -77,6 +77,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   private wasLineModeBeforeColorPicker = false;
   private wasArrowModeBeforeColorPicker = false;
 
+  isMobile = false;
   currentMode: string | null = null;
   originalFilename = '';
   selectedColor: string = TEXT_COLOR.DEFAULT;
@@ -84,7 +85,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   showTextDialog = false;
   customTextInput = '';
 
-  constructor(private breakpointObserver: BreakpointObserver) {
+  constructor(private readonly breakpointObserver: BreakpointObserver) {
     this.breakpointObserver
       .observe([Breakpoints.Handset])
       .subscribe((result) => {
@@ -1176,5 +1177,91 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       this.redrawCanvas();
       this.arrowStartPosition = null;
     }
+  }
+
+  @HostListener('touchstart', ['$event'])
+  onTouchStart(event: TouchEvent): void {
+    if (this.isColorPickerOpen) return;
+    if (!event.touches.length) return;
+    const touch = event.touches[0];
+    if (!this.isTouchInCanvas(touch)) return;
+    this.lastTouch = touch;
+    const fakeEvent = {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      shiftKey: false,
+      preventDefault: () => event.preventDefault(),
+    } as MouseEvent;
+
+    // Handle text/mark modes directly for tap
+    if (
+      this.currentMode === this.drawModeConst.CHECK ||
+      this.currentMode === this.drawModeConst.X ||
+      this.currentMode === this.drawModeConst.FREE_TEXT ||
+      this.currentMode === this.drawModeConst.DELETE
+    ) {
+      // Simulate a click event for text/mark
+      this.onCanvasClick(fakeEvent);
+      event.preventDefault();
+      return;
+    }
+
+    // Reuse mouse down logic for drawing
+    this.onMouseDown(fakeEvent);
+    event.preventDefault();
+  }
+
+  @HostListener('touchmove', ['$event'])
+  onTouchMove(event: TouchEvent): void {
+    if (this.isColorPickerOpen) return;
+    if (!event.touches.length) return;
+    const touch = event.touches[0];
+    if (!this.isTouchInCanvas(touch)) return;
+    this.lastTouch = touch;
+    const fakeEvent = {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      shiftKey: false,
+      preventDefault: () => event.preventDefault(),
+    } as MouseEvent;
+    // Reuse mouse move logic
+    this.onMouseMove(fakeEvent);
+    event.preventDefault();
+  }
+
+  @HostListener('touchend', ['$event'])
+  onTouchEnd(event: TouchEvent): void {
+    if (this.isColorPickerOpen) return;
+    // Use lastTouch if available, otherwise fallback to changedTouches[0]
+    const touch =
+      this.lastTouch ||
+      (event.changedTouches.length ? event.changedTouches[0] : null);
+    if (!touch) return;
+    if (!this.isTouchInCanvas(touch)) {
+      this.lastTouch = null;
+      return;
+    }
+    const fakeEvent = {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      shiftKey: false,
+      preventDefault: () => event.preventDefault(),
+    } as MouseEvent;
+    // Reuse mouse up logic
+    this.onMouseUp(fakeEvent);
+    this.lastTouch = null;
+    event.preventDefault();
+  }
+
+  private isTouchInCanvas(touch: Touch): boolean {
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+    return (
+      touch.clientX >= rect.left &&
+      touch.clientX <= rect.right &&
+      touch.clientY >= rect.top &&
+      touch.clientY <= rect.bottom &&
+      !this.showTextDialog
+    );
   }
 }
