@@ -36,22 +36,13 @@
       width: 100%;
     }
   }
-
-  .mobile-canvas-note {
-    text-align: center;
-    color: #888;
-    font-size: 0.75em;
-    margin-bottom: 0.5em;
-    padding: 0.25em 0.5em;
-    background: #f3f3f3;
-    border-radius: 6px;
-  }
 }
 
 .editor-wrapper {
   display: flex;
   gap: 1rem;
-  height: calc(100vh - 120px);
+  flex-grow: 1; // Allow this element to grow and fill available space
+  overflow: hidden; // Prevent wrapper overflow, let canvas-container handle scroll
 }
 
 .canvas-container {
@@ -60,5 +51,13 @@
   background-color: #f8f9fa;
   border: 1px dashed #ddd;
   overflow: auto;
+  touch-action: pan-x pan-y;
+}
+
+.canvas-container.draw-mode {
+  touch-action: none;
+}
+
+.canvas-container.scroll-mode {
   touch-action: pan-x pan-y;
 }

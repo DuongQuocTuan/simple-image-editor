@@ -211,6 +211,20 @@
         (onShow)="onColorPickerOpen()"
         (onHide)="onColorPickerClose()"
       />
+      <p-button
+        class="ml-2"
+        [icon]="
+          interactionMode === interactionModeConst.DRAW
+            ? 'pi pi-pencil'
+            : 'pi pi-arrows-alt'
+        "
+        [severity]="
+          interactionMode === interactionModeConst.DRAW ? 'info' : 'secondary'
+        "
+        [rounded]="true"
+        [raised]="true"
+        (click)="toggleInteractionMode()"
+      ></p-button>
     </div>
 
     <div class="grid grid-cols-5 grid-rows-2 gap-2 items-center">
@@ -315,16 +329,17 @@
     </div>
   </div>
 
-  <ng-container *ngIf="isMobile">
-    <div class="mobile-canvas-note mt-2">
-      Tip: Use one finger to draw, two fingers to scroll/pan the image.
-    </div>
-  </ng-container>
-
   <div class="editor-wrapper">
     <div
       class="canvas-container"
-      [ngClass]="{ 'justify-items-center': !isMobile }"
+      [ngClass]="{
+        'mt-4 mb-4': !isMobile,
+        'mt-2 mb-2': isMobile,
+        'justify-items-center': !isMobile,
+        'draw-mode': isMobile && interactionMode === interactionModeConst.DRAW,
+        'scroll-mode':
+          isMobile && interactionMode === interactionModeConst.SCROLL
+      }"
     >
       <canvas #canvas (click)="onCanvasClick($event)"></canvas>
     </div>

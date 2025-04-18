@@ -9,8 +9,9 @@ import {
   ViewChild,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { DRAW_MODE } from '@features/image-editor/constants/button-type.constant';
+import { DRAW_MODE } from '@features/image-editor/constants/draw-mode.constant';
 import { FONT_SETTING } from '@features/image-editor/constants/font-setting.constant';
+import { INTERACTION_MODE } from '@features/image-editor/constants/interaction-mode.constant';
 import { TEXT_COLOR } from '@features/image-editor/constants/text-color.constant';
 import { TEXT_SYMBOL } from '@features/image-editor/constants/text-symbol.constant';
 import {
@@ -54,12 +55,8 @@ import { TooltipModule } from 'primeng/tooltip';
 })
 export class SimpleImageEditorComponent implements AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
-  private lastTouch: Touch | null = null; // Touch event handlers for mobile
+  private readonly activePointers: Set<number> = new Set<number>(); // Track active touch pointers for pointer events
   private readonly deletionThreshold = 100; // Pixels
-  readonly textColorConst = TEXT_COLOR;
-  readonly textSymbolConst = TEXT_SYMBOL;
-  readonly fontSettingConst = FONT_SETTING;
-  readonly drawModeConst = DRAW_MODE;
   private context: CanvasRenderingContext2D | null = null;
   private image: HTMLImageElement | null = null;
   private selectedText: SelectedText | null = null;
@@ -77,6 +74,11 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   private wasLineModeBeforeColorPicker = false;
   private wasArrowModeBeforeColorPicker = false;
 
+  readonly textColorConst = TEXT_COLOR;
+  readonly textSymbolConst = TEXT_SYMBOL;
+  readonly fontSettingConst = FONT_SETTING;
+  readonly drawModeConst = DRAW_MODE;
+  readonly interactionModeConst = INTERACTION_MODE;
   isMobile = false;
   currentMode: string | null = null;
   originalFilename = '';
@@ -84,6 +86,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   fontSize = FONT_SETTING.FONT_SIZE;
   showTextDialog = false;
   customTextInput = '';
+  interactionMode: string = INTERACTION_MODE.DRAW;
 
   constructor(private readonly breakpointObserver: BreakpointObserver) {
     this.breakpointObserver
@@ -259,32 +262,28 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   }
 
   enableArrowMode(color: string): void {
-    this.selectedColor = color;
-    this.currentMode = DRAW_MODE.ARROW;
-    this.selectedText = null;
+    this.setMode(DRAW_MODE.ARROW, color);
   }
 
   enableLineMode(color: string): void {
-    this.selectedColor = color;
-    this.currentMode = DRAW_MODE.LINE;
-    this.selectedText = null;
+    this.setMode(DRAW_MODE.LINE, color);
   }
 
   enableCustomTextMode(color: string): void {
-    this.currentMode = DRAW_MODE.FREE_TEXT;
-    this.selectedText = null;
-    this.selectedColor = color;
+    this.setMode(DRAW_MODE.FREE_TEXT, color);
   }
 
   enableSquareMode(color: string): void {
-    this.selectedColor = color;
-    this.currentMode = DRAW_MODE.SQUARE;
-    this.selectedText = null;
+    this.setMode(DRAW_MODE.SQUARE, color);
   }
 
   enableEllipseMode(color: string): void {
+    this.setMode(DRAW_MODE.ELLIPSE, color);
+  }
+
+  private setMode(mode: string, color: string) {
+    this.currentMode = mode;
     this.selectedColor = color;
-    this.currentMode = DRAW_MODE.ELLIPSE;
     this.selectedText = null;
   }
 
@@ -712,13 +711,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   onMouseDown(event: MouseEvent): void {
     if (this.isColorPickerOpen) return;
 
-    const canvas = this.canvasRef.nativeElement;
-    const rect = canvas.getBoundingClientRect();
-    const isInCanvas =
-      event.clientX >= rect.left &&
-      event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom;
+    const { rect, isInCanvas } = this.isInCanvas(event);
 
     switch (this.currentMode) {
       case DRAW_MODE.SQUARE:
@@ -736,6 +729,17 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       default:
         break;
     }
+  }
+
+  private isInCanvas(event: MouseEvent | PointerEvent) {
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+    const isInCanvas =
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom;
+    return { rect, isInCanvas };
   }
 
   private handleSquareMouseDown(
@@ -794,13 +798,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   onMouseMove(event: MouseEvent): void {
     if (this.isColorPickerOpen) return;
 
-    const canvas = this.canvasRef.nativeElement;
-    const rect = canvas.getBoundingClientRect();
-    const isInCanvas =
-      event.clientX >= rect.left &&
-      event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom;
+    const { rect, isInCanvas } = this.isInCanvas(event);
 
     switch (this.currentMode) {
       case DRAW_MODE.SQUARE:
@@ -994,13 +992,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   onMouseUp(event: MouseEvent): void {
     if (this.isColorPickerOpen) return;
 
-    const canvas = this.canvasRef.nativeElement;
-    const rect = canvas.getBoundingClientRect();
-    const isInCanvas =
-      event.clientX >= rect.left &&
-      event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom;
+    const { rect, isInCanvas } = this.isInCanvas(event);
 
     switch (this.currentMode) {
       case DRAW_MODE.SQUARE:
@@ -1179,108 +1171,144 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     }
   }
 
-  @HostListener('touchstart', ['$event'])
-  onTouchStart(event: TouchEvent): void {
-    if (this.isColorPickerOpen) return;
-    if (!event.touches.length) return;
-
-    // If two or more fingers, allow scroll (do not preventDefault)
-    if (event.touches.length > 1) {
-      return;
-    }
-
-    const touch = event.touches[0];
-    if (!this.isTouchInCanvas(touch)) return;
-    this.lastTouch = touch;
-    const fakeEvent = {
-      clientX: touch.clientX,
-      clientY: touch.clientY,
-      shiftKey: false,
-      preventDefault: () => event.preventDefault(),
-    } as MouseEvent;
-
-    // Handle text/mark modes directly for tap
-    if (
-      this.currentMode === this.drawModeConst.CHECK ||
-      this.currentMode === this.drawModeConst.X ||
-      this.currentMode === this.drawModeConst.FREE_TEXT ||
-      this.currentMode === this.drawModeConst.DELETE
-    ) {
-      // Simulate a click event for text/mark
-      this.onCanvasClick(fakeEvent);
-      event.preventDefault();
-      return;
-    }
-
-    // Reuse mouse down logic for drawing
-    this.onMouseDown(fakeEvent);
-    event.preventDefault();
+  toggleInteractionMode(): void {
+    this.interactionMode =
+      this.interactionMode === INTERACTION_MODE.DRAW
+        ? INTERACTION_MODE.SCROLL
+        : INTERACTION_MODE.DRAW;
+    this.resetDrawingStates();
   }
 
-  @HostListener('touchmove', ['$event'])
-  onTouchMove(event: TouchEvent): void {
-    if (this.isColorPickerOpen) return;
-    if (!event.touches.length) return;
-
-    // If two or more fingers, allow scroll (do not preventDefault)
-    if (event.touches.length > 1) {
-      return;
-    }
-
-    const touch = event.touches[0];
-    if (!this.isTouchInCanvas(touch)) return;
-    this.lastTouch = touch;
-    const fakeEvent = {
-      clientX: touch.clientX,
-      clientY: touch.clientY,
-      shiftKey: false,
-      preventDefault: () => event.preventDefault(),
-    } as MouseEvent;
-    // Reuse mouse move logic
-    this.onMouseMove(fakeEvent);
-    event.preventDefault();
+  // Reset drawing states when switching modes
+  private resetDrawingStates(): void {
+    this.squareStartPosition = null;
+    this.ellipseStartPosition = null;
+    this.lineStartPosition = null;
+    this.arrowStartPosition = null;
   }
 
-  @HostListener('touchend', ['$event'])
-  onTouchEnd(event: TouchEvent): void {
+  @HostListener('pointerdown', ['$event'])
+  onPointerDown(event: PointerEvent): void {
     if (this.isColorPickerOpen) return;
 
-    // If two or more fingers, allow scroll (do not preventDefault)
-    if (event.touches.length > 1 || event.changedTouches.length > 1) {
-      this.lastTouch = null;
+    const { isInCanvas } = this.isInCanvas(event);
+    if (!isInCanvas) {
       return;
     }
 
-    // Use lastTouch if available, otherwise fallback to changedTouches[0]
-    const touch =
-      this.lastTouch ||
-      (event.changedTouches.length ? event.changedTouches[0] : null);
-    if (!touch) return;
-    if (!this.isTouchInCanvas(touch)) {
-      this.lastTouch = null;
-      return;
+    if (event.pointerType === 'touch') {
+      // Only allow drawing if in draw mode
+      if (this.interactionMode === INTERACTION_MODE.SCROLL) {
+        // Let browser handle scroll/pan
+        return;
+      }
+      this.activePointers.add(event.pointerId);
+      if (this.activePointers.size > 1) {
+        // Prevent drawing if multiple fingers are down (could be pinch/zoom)
+        return;
+      }
+
+      // Simulate MouseEvent for existing handlers, ensuring coordinates are relative to canvas
+      const simulatedMouseEvent = new MouseEvent('mousedown', {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        // Add other properties if needed by handlers
+      });
+
+      if (
+        this.currentMode === this.drawModeConst.CHECK ||
+        this.currentMode === this.drawModeConst.X ||
+        this.currentMode === this.drawModeConst.FREE_TEXT ||
+        this.currentMode === this.drawModeConst.DELETE
+      ) {
+        // Use simulated event for onCanvasClick
+        this.onCanvasClick(simulatedMouseEvent);
+        event.preventDefault(); // Prevent default touch actions like scrolling
+        return;
+      }
+      // Use simulated event for onMouseDown
+      this.onMouseDown(simulatedMouseEvent);
+      event.preventDefault(); // Prevent default touch actions
     }
-    const fakeEvent = {
-      clientX: touch.clientX,
-      clientY: touch.clientY,
-      shiftKey: false,
-      preventDefault: () => event.preventDefault(),
-    } as MouseEvent;
-    // Reuse mouse up logic
-    this.onMouseUp(fakeEvent);
-    this.lastTouch = null;
-    event.preventDefault();
   }
 
-  private isTouchInCanvas(touch: Touch): boolean {
-    const canvas = this.canvasRef.nativeElement;
-    const rect = canvas.getBoundingClientRect();
-    return (
-      touch.clientX >= rect.left &&
-      touch.clientX <= rect.right &&
-      touch.clientY >= rect.top &&
-      touch.clientY <= rect.bottom &&
-      !this.showTextDialog
-    );
+  @HostListener('pointermove', ['$event'])
+  onPointerMove(event: PointerEvent): void {
+    if (this.isColorPickerOpen) return;
+
+    const { isInCanvas } = this.isInCanvas(event);
+    if (!isInCanvas) {
+      return;
+    }
+
+    if (event.pointerType === 'touch') {
+      if (this.interactionMode === INTERACTION_MODE.SCROLL) {
+        // Let browser handle scroll/pan
+        return;
+      }
+      if (!this.activePointers.has(event.pointerId)) return; // Only track pointers that started down
+      if (this.activePointers.size > 1) {
+        // Prevent drawing if multiple fingers are down
+        return;
+      }
+
+      // Simulate MouseEvent for existing handlers
+      const simulatedMouseEvent = new MouseEvent('mousemove', {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        shiftKey: event.shiftKey, // Preserve shift key status if needed
+        // Add other properties if needed by handlers
+      });
+
+      this.onMouseMove(simulatedMouseEvent);
+      event.preventDefault(); // Prevent default touch actions like scrolling
+    }
+  }
+
+  @HostListener('pointerup', ['$event'])
+  onPointerUp(event: PointerEvent): void {
+    const { isInCanvas } = this.isInCanvas(event);
+    if (!isInCanvas) {
+      return;
+    }
+
+    if (event.pointerType === 'touch') {
+      if (this.interactionMode === INTERACTION_MODE.SCROLL) {
+        // Let browser handle scroll/pan
+        this.activePointers.delete(event.pointerId);
+        return;
+      }
+
+      // Check if the pointer being lifted is one we were tracking
+      if (!this.activePointers.has(event.pointerId)) {
+        // This pointer wasn't the primary drawing pointer or wasn't tracked
+        this.activePointers.delete(event.pointerId); // Clean up just in case
+        return;
+      }
+
+      this.activePointers.delete(event.pointerId);
+
+      // Simulate MouseEvent for existing handlers
+      const simulatedMouseEvent = new MouseEvent('mouseup', {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        shiftKey: event.shiftKey, // Preserve shift key status
+        // Add other properties if needed by handlers
+      });
+
+      // Only call mouseUp if this was the last active drawing pointer
+      // However, onMouseUp itself checks start positions, so it's safe to call generally
+      // if (this.activePointers.size === 0) { // Check if this was the last finger lifted
+      this.onMouseUp(simulatedMouseEvent);
+      event.preventDefault(); // Prevent potential default actions like focus changes
+      // }
+    }
+  }
+
+  @HostListener('pointercancel', ['$event'])
+  onPointerCancel(event: PointerEvent): void {
+    if (event.pointerType === 'touch') {
+      this.activePointers.delete(event.pointerId);
+    }
   }
 }
