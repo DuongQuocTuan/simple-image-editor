@@ -1268,7 +1268,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   @HostListener('pointerup', ['$event'])
   onPointerUp(event: PointerEvent): void {
     const { isInCanvas } = this.isInCanvas(event);
-    if (!isInCanvas || this.showTextDialog) {
+    if (!isInCanvas) {
       return;
     }
 
@@ -1301,7 +1301,6 @@ export class SimpleImageEditorComponent implements AfterViewInit {
       // if (this.activePointers.size === 0) { // Check if this was the last finger lifted
       this.onMouseUp(simulatedMouseEvent);
       event.preventDefault(); // Prevent potential default actions like focus changes
-      // }
     }
   }
 
