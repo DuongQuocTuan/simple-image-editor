@@ -1192,7 +1192,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     if (this.isColorPickerOpen) return;
 
     const { isInCanvas } = this.isInCanvas(event);
-    if (!isInCanvas) {
+    if (!isInCanvas || this.showTextDialog) {
       return;
     }
 
@@ -1237,7 +1237,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
     if (this.isColorPickerOpen) return;
 
     const { isInCanvas } = this.isInCanvas(event);
-    if (!isInCanvas) {
+    if (!isInCanvas || this.showTextDialog) {
       return;
     }
 
@@ -1268,7 +1268,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   @HostListener('pointerup', ['$event'])
   onPointerUp(event: PointerEvent): void {
     const { isInCanvas } = this.isInCanvas(event);
-    if (!isInCanvas) {
+    if (!isInCanvas || this.showTextDialog) {
       return;
     }
 
