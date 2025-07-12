@@ -90,7 +90,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
 
   constructor(private readonly breakpointObserver: BreakpointObserver) {
     this.breakpointObserver
-      .observe([Breakpoints.Handset])
+      .observe([Breakpoints.Tablet])
       .subscribe((result) => {
         this.isMobile = result.matches;
       });
