@@ -1,6 +1,9 @@
 <div class="custom-card image-editor-container">
   <!-- Desktop Toolbar -->
-  <div *ngIf="!isMobile" class="grid grid-cols-1 sm:grid-cols-12 mt-6">
+  <div
+    *ngIf="!isMobile && !isTablet"
+    class="grid grid-cols-1 sm:grid-cols-12 mt-6"
+  >
     <div class="flex text-left col-span-1 sm:col-span-3">
       <p-fileUpload
         mode="basic"
@@ -160,8 +163,404 @@
     </div>
   </div>
 
+  <!-- Tablet Landscape Toolbar (Single Row) -->
+  <div *ngIf="isTabletLandscape" class="tablet-landscape-toolbar mt-4">
+    <div class="flex justify-between items-center gap-2 w-full">
+      <!-- File Upload Section -->
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <p-fileUpload
+          mode="basic"
+          name="imageUpload"
+          accept="image/*"
+          [maxFileSize]="5000000"
+          [auto]="true"
+          [customUpload]="true"
+          (uploadHandler)="onFileSelected($event)"
+          chooseLabel="Upload Image"
+          class="file-input"
+        >
+        </p-fileUpload>
+        <span
+          class="text-gray-500 text-xs max-w-20 truncate"
+          *ngIf="originalFilename"
+        >
+          {{ getDisplayFilename() }}
+        </span>
+      </div>
+
+      <!-- All Tools in Single Row -->
+      <div
+        class="flex items-center gap-1 flex-1 justify-center overflow-hidden"
+      >
+        <!-- Font Size & Color -->
+        <p-inputnumber
+          class="font-size-input mr-1"
+          buttonLayout="horizontal"
+          spinnerMode="horizontal"
+          [(ngModel)]="fontSize"
+          (ngModelChange)="updateFontSize()"
+          [showButtons]="true"
+          [min]="4"
+          [max]="100"
+          [step]="4"
+          [suffix]="fontSettingConst.FONT_UNIT"
+          [style]="{ width: '100px' }"
+        >
+          <ng-template #incrementbuttonicon>
+            <span class="pi pi-plus"></span>
+          </ng-template>
+          <ng-template #decrementbuttonicon>
+            <span class="pi pi-minus"></span>
+          </ng-template>
+        </p-inputnumber>
+
+        <p-colorPicker
+          class="color-picker mr-8"
+          [(ngModel)]="selectedColor"
+          (onChange)="updateColor(selectedColor)"
+          (onShow)="onColorPickerOpen()"
+          (onHide)="onColorPickerClose()"
+        />
+
+        <!-- Text Tools -->
+        <p-button
+          icon="pi pi-check"
+          [severity]="
+            currentMode === drawModeConst.CHECK ? 'success' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.CHECK"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.CHECK"
+          (click)="selectText(textSymbolConst.CHECK, textColorConst.CHECK)"
+          pTooltip="Check"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-times"
+          [severity]="currentMode === drawModeConst.X ? 'danger' : 'secondary'"
+          [raised]="currentMode === drawModeConst.X"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.X"
+          (click)="selectText(textSymbolConst.X, textColorConst.X)"
+          pTooltip="X"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-pencil"
+          [severity]="
+            currentMode === drawModeConst.FREE_TEXT ? 'info' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.FREE_TEXT"
+          [plain]="
+            currentMode !== null && currentMode !== drawModeConst.FREE_TEXT
+          "
+          (click)="enableCustomTextMode(textColorConst.FREE_TEXT)"
+          pTooltip="Text"
+          class="mr-8"
+        />
+
+        <!-- Shape Tools -->
+        <p-button
+          icon="pi pi-stop"
+          [severity]="
+            currentMode === drawModeConst.SQUARE ? 'warn' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.SQUARE"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.SQUARE"
+          (click)="enableSquareMode(textColorConst.SQUARE)"
+          pTooltip="Rectangle"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-circle"
+          [severity]="
+            currentMode === drawModeConst.ELLIPSE ? 'warn' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.ELLIPSE"
+          [plain]="
+            currentMode !== null && currentMode !== drawModeConst.ELLIPSE
+          "
+          (click)="enableEllipseMode(textColorConst.ELLIPSE)"
+          pTooltip="Ellipse"
+          class="mr-8"
+        />
+        <p-button
+          icon="pi pi-minus"
+          [severity]="currentMode === drawModeConst.LINE ? 'help' : 'secondary'"
+          [raised]="currentMode === drawModeConst.LINE"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.LINE"
+          (click)="enableLineMode(textColorConst.LINE)"
+          pTooltip="Line"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-arrow-right"
+          [severity]="
+            currentMode === drawModeConst.ARROW ? 'help' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.ARROW"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.ARROW"
+          (click)="enableArrowMode(textColorConst.ARROW)"
+          pTooltip="Arrow"
+          class="mr-8"
+        />
+
+        <!-- Action Tools -->
+        <p-button
+          icon="pi pi-chevron-left"
+          [outlined]="true"
+          (click)="undo(); $event.stopPropagation()"
+          pTooltip="Undo"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-chevron-right"
+          [outlined]="true"
+          (click)="redo(); $event.stopPropagation()"
+          pTooltip="Redo"
+          class="mr-8"
+        />
+        <p-button
+          icon="pi pi-trash"
+          [severity]="
+            currentMode === drawModeConst.DELETE ? 'primary' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.DELETE"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.DELETE"
+          (click)="toggleDeleteMode()"
+          pTooltip="Delete"
+        />
+      </div>
+
+      <!-- Right Section -->
+      <div class="flex items-center gap-2">
+        <p-button
+          [icon]="
+            interactionMode === interactionModeConst.DRAW
+              ? 'pi pi-pencil'
+              : 'pi pi-arrows-alt'
+          "
+          [severity]="
+            interactionMode === interactionModeConst.DRAW ? 'info' : 'secondary'
+          "
+          [rounded]="true"
+          [raised]="true"
+          (click)="toggleInteractionMode()"
+          pTooltip="Toggle Mode"
+        />
+        <p-button
+          label="Export"
+          icon="pi pi-download"
+          severity="help"
+          [raised]="true"
+          (click)="exportImage()"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Tablet Portrait Toolbar (Two Lines) -->
+  <div
+    *ngIf="isTablet && !isTabletLandscape"
+    class="tablet-toolbar mt-6 space-y-3"
+  >
+    <!-- File Upload and Export Row -->
+    <div class="flex justify-between items-center gap-4">
+      <div class="flex items-center gap-2">
+        <p-fileUpload
+          mode="basic"
+          name="imageUpload"
+          accept="image/*"
+          [maxFileSize]="5000000"
+          [auto]="true"
+          [customUpload]="true"
+          (uploadHandler)="onFileSelected($event)"
+          chooseLabel="Upload Image"
+          class="file-input"
+        >
+        </p-fileUpload>
+        <span class="text-gray-500 text-sm" *ngIf="originalFilename">
+          {{ getDisplayFilename() }}
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <p-button
+          [icon]="
+            interactionMode === interactionModeConst.DRAW
+              ? 'pi pi-pencil'
+              : 'pi pi-arrows-alt'
+          "
+          [severity]="
+            interactionMode === interactionModeConst.DRAW ? 'info' : 'secondary'
+          "
+          [rounded]="true"
+          [raised]="true"
+          (click)="toggleInteractionMode()"
+          pTooltip="Toggle Mode"
+        />
+        <p-button
+          label="Export"
+          icon="pi pi-download"
+          severity="help"
+          [raised]="true"
+          (click)="exportImage()"
+        />
+      </div>
+    </div>
+
+    <!-- Controls Row -->
+    <div class="flex justify-center items-center gap-4 flex-wrap">
+      <!-- Font Size Control -->
+      <div class="flex items-center gap-2">
+        <p-inputnumber
+          class="font-size-input mr-1"
+          buttonLayout="horizontal"
+          spinnerMode="horizontal"
+          [(ngModel)]="fontSize"
+          (ngModelChange)="updateFontSize()"
+          [showButtons]="true"
+          [min]="4"
+          [max]="100"
+          [step]="4"
+          [suffix]="fontSettingConst.FONT_UNIT"
+          [style]="{ width: '120px' }"
+        >
+          <ng-template #incrementbuttonicon>
+            <span class="pi pi-plus"></span>
+          </ng-template>
+          <ng-template #decrementbuttonicon>
+            <span class="pi pi-minus"></span>
+          </ng-template>
+        </p-inputnumber>
+
+        <p-colorPicker
+          class="color-picker mr-8"
+          [(ngModel)]="selectedColor"
+          (onChange)="updateColor(selectedColor)"
+          (onShow)="onColorPickerOpen()"
+          (onHide)="onColorPickerClose()"
+        />
+      </div>
+
+      <!-- Text Tools -->
+      <div class="flex items-center gap-2">
+        <p-button
+          icon="pi pi-check"
+          [severity]="
+            currentMode === drawModeConst.CHECK ? 'success' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.CHECK"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.CHECK"
+          (click)="selectText(textSymbolConst.CHECK, textColorConst.CHECK)"
+          pTooltip="Check Mark"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-times"
+          [severity]="currentMode === drawModeConst.X ? 'danger' : 'secondary'"
+          [raised]="currentMode === drawModeConst.X"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.X"
+          (click)="selectText(textSymbolConst.X, textColorConst.X)"
+          pTooltip="X Mark"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-pencil"
+          [severity]="
+            currentMode === drawModeConst.FREE_TEXT ? 'info' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.FREE_TEXT"
+          [plain]="
+            currentMode !== null && currentMode !== drawModeConst.FREE_TEXT
+          "
+          (click)="enableCustomTextMode(textColorConst.FREE_TEXT)"
+          pTooltip="Free Text"
+          class="mr-8"
+        />
+      </div>
+
+      <!-- Shape Tools -->
+      <div class="flex items-center gap-2">
+        <p-button
+          icon="pi pi-stop"
+          pTooltip="Draw Rectangle (Hold Shift for Square)"
+          [severity]="
+            currentMode === drawModeConst.SQUARE ? 'warn' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.SQUARE"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.SQUARE"
+          (click)="enableSquareMode(textColorConst.SQUARE)"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-circle"
+          pTooltip="Draw Ellipse (Hold Shift for Circle)"
+          [severity]="
+            currentMode === drawModeConst.ELLIPSE ? 'warn' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.ELLIPSE"
+          [plain]="
+            currentMode !== null && currentMode !== drawModeConst.ELLIPSE
+          "
+          (click)="enableEllipseMode(textColorConst.ELLIPSE)"
+          class="mr-8"
+        />
+      </div>
+
+      <!-- Line Tools -->
+      <div class="flex items-center gap-2">
+        <p-button
+          icon="pi pi-minus"
+          pTooltip="Draw Line (Hold Shift for Straight/Diagonal)"
+          [severity]="currentMode === drawModeConst.LINE ? 'help' : 'secondary'"
+          [raised]="currentMode === drawModeConst.LINE"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.LINE"
+          (click)="enableLineMode(textColorConst.LINE)"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-arrow-right"
+          pTooltip="Draw Arrow (Hold Shift for Straight/Diagonal)"
+          [severity]="
+            currentMode === drawModeConst.ARROW ? 'help' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.ARROW"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.ARROW"
+          (click)="enableArrowMode(textColorConst.ARROW)"
+          class="mr-8"
+        />
+      </div>
+
+      <!-- Action Tools -->
+      <div class="flex items-center gap-2">
+        <p-button
+          icon="pi pi-chevron-left"
+          [outlined]="true"
+          (click)="undo(); $event.stopPropagation()"
+          pTooltip="Undo"
+          class="mr-1"
+        />
+        <p-button
+          icon="pi pi-chevron-right"
+          [outlined]="true"
+          (click)="redo(); $event.stopPropagation()"
+          pTooltip="Redo"
+          class="mr-8"
+        />
+        <p-button
+          icon="pi pi-trash"
+          pTooltip="Delete Tool - Click at the start of text to delete it"
+          [severity]="
+            currentMode === drawModeConst.DELETE ? 'primary' : 'secondary'
+          "
+          [raised]="currentMode === drawModeConst.DELETE"
+          [plain]="currentMode !== null && currentMode !== drawModeConst.DELETE"
+          (click)="toggleDeleteMode()"
+        />
+      </div>
+    </div>
+  </div>
+
   <!-- Mobile Toolbar -->
-  <div *ngIf="isMobile" class="mobile-toolbar space-y-2 mt-6">
+  <div *ngIf="isMobile" class="mobile-toolbar space-y-2 mt-4">
     <div class="grid grid-cols-2 gap-2">
       <p-fileUpload
         mode="basic"
@@ -333,12 +732,16 @@
     <div
       class="canvas-container"
       [ngClass]="{
-        'mt-4 mb-4': !isMobile,
-        'mt-2 mb-2': isMobile,
-        'justify-items-center': !isMobile,
-        'draw-mode': isMobile && interactionMode === interactionModeConst.DRAW,
+        'mt-4 mb-4': !isMobile && !isTablet,
+        'mt-3 mb-3': isTablet && !isTabletLandscape,
+        'mt-2 mb-2': isMobile || isTabletLandscape,
+        'justify-items-center': !isMobile && !isTablet,
+        'draw-mode':
+          (isMobile || isTablet) &&
+          interactionMode === interactionModeConst.DRAW,
         'scroll-mode':
-          isMobile && interactionMode === interactionModeConst.SCROLL
+          (isMobile || isTablet) &&
+          interactionMode === interactionModeConst.SCROLL
       }"
     >
       <canvas #canvas (click)="onCanvasClick($event)"></canvas>

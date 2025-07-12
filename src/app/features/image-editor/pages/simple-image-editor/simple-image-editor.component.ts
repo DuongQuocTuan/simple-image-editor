@@ -80,6 +80,8 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   readonly drawModeConst = DRAW_MODE;
   readonly interactionModeConst = INTERACTION_MODE;
   isMobile = false;
+  isTablet = false;
+  isTabletLandscape = false;
   currentMode: string | null = null;
   originalFilename = '';
   selectedColor: string = TEXT_COLOR.DEFAULT;
@@ -99,7 +101,30 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         '(max-width: 1920px) and (max-height: 1200px)',
       ])
       .subscribe((result) => {
-        this.isMobile = result.matches && isTouchDevice;
+        if (result.matches && isTouchDevice) {
+          // Further distinguish between tablet and mobile
+          this.breakpointObserver
+            .observe(['(min-width: 768px)'])
+            .subscribe((tabletResult) => {
+              this.isTablet = tabletResult.matches;
+              this.isMobile = !tabletResult.matches;
+
+              // Detect landscape orientation for tablets
+              if (this.isTablet) {
+                this.breakpointObserver
+                  .observe(['(min-width: 1024px) and (orientation: landscape)'])
+                  .subscribe((landscapeResult) => {
+                    this.isTabletLandscape = landscapeResult.matches;
+                  });
+              } else {
+                this.isTabletLandscape = false;
+              }
+            });
+        } else {
+          this.isMobile = false;
+          this.isTablet = false;
+          this.isTabletLandscape = false;
+        }
       });
   }
 
