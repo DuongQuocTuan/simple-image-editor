@@ -267,7 +267,6 @@
               currentMode !== null && currentMode !== drawModeConst.CHECK
             "
             (click)="selectText(textSymbolConst.CHECK, textColorConst.CHECK)"
-            class=""
           />
           <p-button
             icon="pi pi-times"
@@ -277,7 +276,6 @@
             [raised]="currentMode === drawModeConst.X"
             [plain]="currentMode !== null && currentMode !== drawModeConst.X"
             (click)="selectText(textSymbolConst.X, textColorConst.X)"
-            class=""
           />
           <p-button
             icon="pi pi-pencil"
@@ -289,7 +287,6 @@
               currentMode !== null && currentMode !== drawModeConst.FREE_TEXT
             "
             (click)="enableCustomTextMode(textColorConst.FREE_TEXT)"
-            class=""
           />
         </div>
 
@@ -305,7 +302,6 @@
               currentMode !== null && currentMode !== drawModeConst.SQUARE
             "
             (click)="enableSquareMode(textColorConst.SQUARE)"
-            class=""
           />
           <p-button
             icon="pi pi-circle"
@@ -317,7 +313,6 @@
               currentMode !== null && currentMode !== drawModeConst.ELLIPSE
             "
             (click)="enableEllipseMode(textColorConst.ELLIPSE)"
-            class=""
           />
         </div>
 
@@ -331,7 +326,6 @@
             [raised]="currentMode === drawModeConst.LINE"
             [plain]="currentMode !== null && currentMode !== drawModeConst.LINE"
             (click)="enableLineMode(textColorConst.LINE)"
-            class=""
           />
           <p-button
             icon="pi pi-arrow-right"
@@ -343,7 +337,6 @@
               currentMode !== null && currentMode !== drawModeConst.ARROW
             "
             (click)="enableArrowMode(textColorConst.ARROW)"
-            class=""
           />
         </div>
 
@@ -354,13 +347,11 @@
               icon="pi pi-chevron-left"
               [outlined]="true"
               (click)="undo(); $event.stopPropagation()"
-              class=""
             />
             <p-button
               icon="pi pi-chevron-right"
               [outlined]="true"
               (click)="redo(); $event.stopPropagation()"
-              class=""
             />
             <p-button
               icon="pi pi-trash"

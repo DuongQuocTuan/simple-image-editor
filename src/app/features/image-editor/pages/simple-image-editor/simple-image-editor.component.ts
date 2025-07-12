@@ -178,6 +178,12 @@ export class SimpleImageEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   onCanvasClick(event: MouseEvent): void {
+    // Check if click is outside editor-wrapper div
+    const editorWrapper = document.querySelector('.editor-wrapper');
+    if (editorWrapper && !editorWrapper.contains(event.target as Node)) {
+      return;
+    }
+
     if (this.interactionMode === INTERACTION_MODE.SCROLL) {
       return;
     }
