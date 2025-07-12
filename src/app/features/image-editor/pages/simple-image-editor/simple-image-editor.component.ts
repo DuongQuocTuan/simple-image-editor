@@ -89,6 +89,9 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   interactionMode: string = INTERACTION_MODE.DRAW;
 
   constructor(private readonly breakpointObserver: BreakpointObserver) {
+    const isTouchDevice =
+      'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
     this.breakpointObserver
       .observe([
         Breakpoints.Tablet,
@@ -96,7 +99,7 @@ export class SimpleImageEditorComponent implements AfterViewInit {
         '(max-width: 1920px) and (max-height: 1200px)',
       ])
       .subscribe((result) => {
-        this.isMobile = result.matches;
+        this.isMobile = result.matches && isTouchDevice;
       });
   }
 
