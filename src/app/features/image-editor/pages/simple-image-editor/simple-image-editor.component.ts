@@ -1,4 +1,4 @@
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
@@ -85,7 +85,7 @@ export class SimpleImageEditorComponent implements AfterViewInit, OnDestroy {
   readonly interactionModeConst = INTERACTION_MODE;
   isMobile = false;
   isTablet = false;
-  isTabletLandscape = false;
+  isToolbarCollapsed = false;
   currentMode: string | null = null;
   originalFilename = '';
   selectedColor: string = TEXT_COLOR.DEFAULT;
@@ -111,52 +111,19 @@ export class SimpleImageEditorComponent implements AfterViewInit, OnDestroy {
 
     // Observe all breakpoints simultaneously for better reactivity
     const breakpointSub = this.breakpointObserver
-      .observe([
-        Breakpoints.Tablet,
-        '(max-width: 1200px) and (max-height: 1920px)',
-        '(max-width: 1920px) and (max-height: 1200px)',
-        '(min-width: 768px)',
-        '(min-width: 1024px) and (orientation: landscape)',
-      ])
-      .subscribe(() => {
-        this.updateDeviceType(isTouchDevice);
-        this.cdr.markForCheck(); // Trigger change detection
+      .observe(['(min-width: 547px) and (max-width: 1098px)'])
+      .subscribe((state) => {
+        if (isTouchDevice) {
+          this.isTablet = state.matches;
+          this.isMobile = !state.matches;
+        } else {
+          this.isMobile = false;
+          this.isTablet = false;
+        }
+        this.cdr.markForCheck();
       });
 
-    // Also listen for orientation changes
-    const orientationSub = this.breakpointObserver
-      .observe(['(orientation: landscape)', '(orientation: portrait)'])
-      .subscribe(() => {
-        this.updateDeviceType(isTouchDevice);
-        this.cdr.markForCheck(); // Trigger change detection
-      });
-
-    this.subscriptions.push(breakpointSub, orientationSub);
-  }
-
-  private updateDeviceType(isTouchDevice: boolean): void {
-    const isTabletOrMobile = this.breakpointObserver.isMatched([
-      Breakpoints.Tablet,
-      '(max-width: 1200px) and (max-height: 1920px)',
-      '(max-width: 1920px) and (max-height: 1200px)',
-    ]);
-
-    if (isTabletOrMobile && isTouchDevice) {
-      const isTabletSize = this.breakpointObserver.isMatched([
-        '(min-width: 768px)',
-      ]);
-      const isLandscape = this.breakpointObserver.isMatched([
-        '(min-width: 1024px) and (orientation: landscape)',
-      ]);
-
-      this.isTablet = isTabletSize;
-      this.isMobile = !isTabletSize;
-      this.isTabletLandscape = isTabletSize && isLandscape;
-    } else {
-      this.isMobile = false;
-      this.isTablet = false;
-      this.isTabletLandscape = false;
-    }
+    this.subscriptions.push(breakpointSub);
   }
 
   ngAfterViewInit(): void {
@@ -1376,5 +1343,9 @@ export class SimpleImageEditorComponent implements AfterViewInit, OnDestroy {
     if (event.pointerType === 'touch') {
       this.activePointers.delete(event.pointerId);
     }
+  }
+
+  toggleToolbar(): void {
+    this.isToolbarCollapsed = !this.isToolbarCollapsed;
   }
 }
