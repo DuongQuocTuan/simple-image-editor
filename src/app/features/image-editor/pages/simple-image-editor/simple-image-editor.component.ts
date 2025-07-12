@@ -3,9 +3,11 @@ import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   HostListener,
+  OnDestroy,
   ViewChild,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -31,6 +33,7 @@ import { FileUploadHandlerEvent, FileUploadModule } from 'primeng/fileupload';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { TooltipModule } from 'primeng/tooltip';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-simple-image-editor',
@@ -53,10 +56,11 @@ import { TooltipModule } from 'primeng/tooltip';
   styleUrls: ['./simple-image-editor.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SimpleImageEditorComponent implements AfterViewInit {
+export class SimpleImageEditorComponent implements AfterViewInit, OnDestroy {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   private readonly activePointers: Set<number> = new Set<number>(); // Track active touch pointers for pointer events
   private readonly deletionThreshold = 100; // Pixels
+  private readonly subscriptions: Subscription[] = [];
   private context: CanvasRenderingContext2D | null = null;
   private image: HTMLImageElement | null = null;
   private selectedText: SelectedText | null = null;
@@ -90,42 +94,69 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   customTextInput = '';
   interactionMode: string = INTERACTION_MODE.DRAW;
 
-  constructor(private readonly breakpointObserver: BreakpointObserver) {
+  constructor(
+    private readonly breakpointObserver: BreakpointObserver,
+    private readonly cdr: ChangeDetectorRef
+  ) {
+    this.setupResponsiveDetection();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
+  private setupResponsiveDetection(): void {
     const isTouchDevice =
       'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    this.breakpointObserver
+    // Observe all breakpoints simultaneously for better reactivity
+    const breakpointSub = this.breakpointObserver
       .observe([
         Breakpoints.Tablet,
         '(max-width: 1200px) and (max-height: 1920px)',
         '(max-width: 1920px) and (max-height: 1200px)',
+        '(min-width: 768px)',
+        '(min-width: 1024px) and (orientation: landscape)',
       ])
-      .subscribe((result) => {
-        if (result.matches && isTouchDevice) {
-          // Further distinguish between tablet and mobile
-          this.breakpointObserver
-            .observe(['(min-width: 768px)'])
-            .subscribe((tabletResult) => {
-              this.isTablet = tabletResult.matches;
-              this.isMobile = !tabletResult.matches;
-
-              // Detect landscape orientation for tablets
-              if (this.isTablet) {
-                this.breakpointObserver
-                  .observe(['(min-width: 1024px) and (orientation: landscape)'])
-                  .subscribe((landscapeResult) => {
-                    this.isTabletLandscape = landscapeResult.matches;
-                  });
-              } else {
-                this.isTabletLandscape = false;
-              }
-            });
-        } else {
-          this.isMobile = false;
-          this.isTablet = false;
-          this.isTabletLandscape = false;
-        }
+      .subscribe(() => {
+        this.updateDeviceType(isTouchDevice);
+        this.cdr.markForCheck(); // Trigger change detection
       });
+
+    // Also listen for orientation changes
+    const orientationSub = this.breakpointObserver
+      .observe(['(orientation: landscape)', '(orientation: portrait)'])
+      .subscribe(() => {
+        this.updateDeviceType(isTouchDevice);
+        this.cdr.markForCheck(); // Trigger change detection
+      });
+
+    this.subscriptions.push(breakpointSub, orientationSub);
+  }
+
+  private updateDeviceType(isTouchDevice: boolean): void {
+    const isTabletOrMobile = this.breakpointObserver.isMatched([
+      Breakpoints.Tablet,
+      '(max-width: 1200px) and (max-height: 1920px)',
+      '(max-width: 1920px) and (max-height: 1200px)',
+    ]);
+
+    if (isTabletOrMobile && isTouchDevice) {
+      const isTabletSize = this.breakpointObserver.isMatched([
+        '(min-width: 768px)',
+      ]);
+      const isLandscape = this.breakpointObserver.isMatched([
+        '(min-width: 1024px) and (orientation: landscape)',
+      ]);
+
+      this.isTablet = isTabletSize;
+      this.isMobile = !isTabletSize;
+      this.isTabletLandscape = isTabletSize && isLandscape;
+    } else {
+      this.isMobile = false;
+      this.isTablet = false;
+      this.isTabletLandscape = false;
+    }
   }
 
   ngAfterViewInit(): void {
