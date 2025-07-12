@@ -155,6 +155,10 @@ export class SimpleImageEditorComponent implements AfterViewInit {
   }
 
   onCanvasClick(event: MouseEvent): void {
+    if (this.interactionMode === INTERACTION_MODE.SCROLL) {
+      return;
+    }
+
     if (this.currentMode === DRAW_MODE.FREE_TEXT) {
       const canvas = this.canvasRef.nativeElement;
       const rect = canvas.getBoundingClientRect();
