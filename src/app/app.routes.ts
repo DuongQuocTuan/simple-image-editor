@@ -8,4 +8,11 @@ export const routes: Routes = [
         (m) => m.IMAGE_EDITOR_ROUTES
       ),
   },
+  {
+    path: '',
+    loadChildren: () =>
+      import('./features/get-device-info/get-device-info.routes').then(
+        (m) => m.GET_DEVICE_INFO_ROUTES
+      ),
+  },
 ];
